@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import MasonryGrid from "@/components/MasonryGrid";
 import RecipeCard from "@/components/RecipeCard";
 import SearchBar, { SearchFilters } from "@/components/SearchBar";
@@ -23,12 +23,15 @@ async function loadRecipes(filters?: SearchFilters): Promise<RecipePreview[]> {
 export default function Home() {
   const [recipes, setRecipes] = useState<RecipePreview[]>([]);
   const [loading, setLoading] = useState(true);
-  const mounted = useRef(false);
 
   useEffect(() => {
-    if (mounted.current) return;
-    mounted.current = true;
-    loadRecipes().then(setRecipes).finally(() => setLoading(false));
+    let cancelled = false;
+    loadRecipes().then((data) => {
+      if (!cancelled) setRecipes(data);
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   function handleSearch(filters: SearchFilters) {

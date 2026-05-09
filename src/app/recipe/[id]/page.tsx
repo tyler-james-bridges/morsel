@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import RecipeContent from "@/components/RecipeContent";
@@ -21,30 +21,33 @@ export default function RecipePage() {
   const [fullContent, setFullContent] = useState<FullContent | null>(null);
   const [locked, setLocked] = useState(true);
   const [loading, setLoading] = useState(true);
-  const mounted = useRef(false);
 
   useEffect(() => {
-    if (!id || mounted.current) return;
-    mounted.current = true;
+    if (!id) return;
+    let cancelled = false;
 
     (async () => {
       try {
         const previewRes = await fetch(`/api/recipes/${id}`);
-        if (previewRes.ok) setPreview(await previewRes.json());
+        if (previewRes.ok && !cancelled) setPreview(await previewRes.json());
 
         const fullRes = await fetch(`/api/recipes/${id}/full`);
-        if (fullRes.ok) {
-          setFullContent(await fullRes.json());
-          setLocked(false);
-        } else {
-          setLocked(true);
+        if (!cancelled) {
+          if (fullRes.ok) {
+            setFullContent(await fullRes.json());
+            setLocked(false);
+          } else {
+            setLocked(true);
+          }
         }
       } catch {
         // API not available
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => { cancelled = true; };
   }, [id]);
 
   function handleUnlocked(data: FullContent) {
