@@ -1,41 +1,40 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import MasonryGrid from "@/components/MasonryGrid";
 import RecipeCard from "@/components/RecipeCard";
 import SearchBar, { SearchFilters } from "@/components/SearchBar";
 import { RecipePreview } from "@/lib/types";
 
+async function loadRecipes(filters?: SearchFilters): Promise<RecipePreview[]> {
+  const params = new URLSearchParams();
+  if (filters?.query) params.set("search", filters.query);
+  if (filters?.cuisine) params.set("cuisine", filters.cuisine);
+  if (filters?.mealType) params.set("mealType", filters.mealType);
+  if (filters?.dietary?.length) {
+    params.set("dietary", filters.dietary.join(","));
+  }
+  const qs = params.toString();
+  const res = await fetch(`/api/recipes${qs ? `?${qs}` : ""}`);
+  if (res.ok) return res.json();
+  return [];
+}
+
 export default function Home() {
   const [recipes, setRecipes] = useState<RecipePreview[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchRecipes = useCallback(async (filters?: SearchFilters) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (filters?.query) params.set("search", filters.query);
-      if (filters?.cuisine) params.set("cuisine", filters.cuisine);
-      if (filters?.mealType) params.set("mealType", filters.mealType);
-      if (filters?.dietary?.length) {
-        params.set("dietary", filters.dietary.join(","));
-      }
-      const qs = params.toString();
-      const res = await fetch(`/api/recipes${qs ? `?${qs}` : ""}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRecipes(data);
-      }
-    } catch {
-      // API not available yet - that's fine for the frontend MVP
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const mounted = useRef(false);
 
   useEffect(() => {
-    fetchRecipes();
-  }, [fetchRecipes]);
+    if (mounted.current) return;
+    mounted.current = true;
+    loadRecipes().then(setRecipes).finally(() => setLoading(false));
+  }, []);
+
+  function handleSearch(filters: SearchFilters) {
+    setLoading(true);
+    loadRecipes(filters).then(setRecipes).finally(() => setLoading(false));
+  }
 
   return (
     <div className="min-h-screen">
@@ -55,7 +54,7 @@ export default function Home() {
       {/* Search + Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div className="mb-8">
-          <SearchBar onChange={fetchRecipes} />
+          <SearchBar onChange={handleSearch} />
         </div>
 
         {loading ? (

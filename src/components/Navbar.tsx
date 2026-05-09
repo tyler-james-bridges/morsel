@@ -2,9 +2,23 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const [showMenu, setShowMenu] = useState(false);
+
+  function handleConnect() {
+    const connector = connectors[0];
+    if (connector) connect({ connector });
+  }
+
+  const truncated = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : "";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-md border-b border-gray-800/50">
@@ -35,9 +49,51 @@ export default function Navbar() {
             >
               Publish
             </Link>
-            <button className="px-4 py-2 text-sm font-medium rounded-lg bg-amber-500 text-gray-950 hover:bg-amber-400 transition-colors">
-              Connect Wallet
-            </button>
+
+            {isConnected ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 transition-colors font-mono"
+                >
+                  {truncated}
+                </button>
+                {showMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg shadow-xl overflow-hidden">
+                    <Link
+                      href={`/creator/${address}`}
+                      className="block px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      My Profile
+                    </Link>
+                    <Link
+                      href="/recipe-box"
+                      className="block px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      My Recipe Box
+                    </Link>
+                    <button
+                      onClick={() => {
+                        disconnect();
+                        setShowMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-gray-800 hover:text-red-300 transition-colors border-t border-gray-800"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={handleConnect}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-amber-500 text-gray-950 hover:bg-amber-400 transition-colors"
+              >
+                Connect Wallet
+              </button>
+            )}
           </div>
 
           <button
@@ -93,9 +149,36 @@ export default function Navbar() {
             >
               Publish
             </Link>
-            <button className="px-4 py-2 text-sm font-medium rounded-lg bg-amber-500 text-gray-950 hover:bg-amber-400 transition-colors w-full">
-              Connect Wallet
-            </button>
+            {isConnected ? (
+              <>
+                <Link
+                  href={`/creator/${address}`}
+                  className="text-sm text-gray-300 hover:text-white transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  My Profile
+                </Link>
+                <button
+                  onClick={() => {
+                    disconnect();
+                    setMobileOpen(false);
+                  }}
+                  className="text-left text-sm text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Disconnect ({truncated})
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  handleConnect();
+                  setMobileOpen(false);
+                }}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-amber-500 text-gray-950 hover:bg-amber-400 transition-colors w-full"
+              >
+                Connect Wallet
+              </button>
+            )}
           </div>
         )}
       </div>

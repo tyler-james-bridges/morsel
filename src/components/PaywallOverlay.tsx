@@ -1,16 +1,117 @@
+"use client";
+
+import { useState } from "react";
+import { useAccount, useWalletClient } from "wagmi";
+import { useConnect } from "wagmi";
+
 interface PaywallOverlayProps {
   price: string;
   creatorName: string;
   recipeTitle: string;
-  onUnlock: () => void;
+  recipeId: string;
+  onUnlocked: (data: {
+    ingredients: string[];
+    steps: string[];
+    notes?: string;
+  }) => void;
 }
 
 export default function PaywallOverlay({
   price,
   creatorName,
   recipeTitle,
-  onUnlock,
+  recipeId,
+  onUnlocked,
 }: PaywallOverlayProps) {
+  const { isConnected, address } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { data: walletClient } = useWalletClient();
+  const [unlocking, setUnlocking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleUnlock() {
+    if (!isConnected || !walletClient || !address) {
+      const connector = connectors[0];
+      if (connector) connect({ connector });
+      return;
+    }
+
+    setUnlocking(true);
+    setError(null);
+
+    try {
+      // Step 1: Hit the x402 endpoint to get payment requirements
+      const initialRes = await fetch(`/api/recipes/${recipeId}/full`);
+
+      if (initialRes.ok) {
+        // Already unlocked or no payment needed
+        const data = await initialRes.json();
+        onUnlocked(data);
+        return;
+      }
+
+      if (initialRes.status !== 402) {
+        throw new Error(`Unexpected response: ${initialRes.status}`);
+      }
+
+      // Step 2: Parse 402 response for payment requirements
+      const requirementsHeader = initialRes.headers.get("x-payment-requirements");
+      if (!requirementsHeader) {
+        throw new Error("No payment requirements in 402 response");
+      }
+
+      const paymentRequirements = JSON.parse(
+        Buffer.from(requirementsHeader, "base64").toString("utf-8"),
+      );
+
+      // Step 3: Create payment header using x402 client
+      const { createPaymentHeader } = await import("x402/client");
+
+      const requirement = Array.isArray(paymentRequirements)
+        ? paymentRequirements[0]
+        : paymentRequirements;
+
+      const x402Version = parseInt(
+        initialRes.headers.get("x-payment-version") || "1",
+      );
+
+      const paymentHeader = await createPaymentHeader(
+        // wagmi walletClient is compatible at runtime; cast for x402 types
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        walletClient as any,
+        x402Version,
+        requirement,
+      );
+
+      // Step 4: Re-fetch with payment header
+      const paidRes = await fetch(`/api/recipes/${recipeId}/full`, {
+        headers: {
+          "x-payment": paymentHeader,
+        },
+      });
+
+      if (!paidRes.ok) {
+        throw new Error(`Payment failed: ${paidRes.status}`);
+      }
+
+      const data = await paidRes.json();
+
+      // Step 5: Record the unlock
+      await fetch(`/api/recipes/${recipeId}/unlock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ buyerAddress: address }),
+      });
+
+      onUnlocked(data);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Payment failed";
+      setError(msg);
+    } finally {
+      setUnlocking(false);
+    }
+  }
+
   return (
     <div className="relative">
       {/* Blurred placeholder content */}
@@ -63,11 +164,22 @@ export default function PaywallOverlay({
           <p className="text-sm text-gray-500 mb-1">{recipeTitle}</p>
           <p className="text-sm text-gray-500 mb-6">by {creatorName}</p>
 
+          {error && (
+            <p className="text-sm text-red-400 mb-4 bg-red-500/10 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
           <button
-            onClick={onUnlock}
-            className="w-full py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm"
+            onClick={handleUnlock}
+            disabled={unlocking}
+            className="w-full py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Pay {price} with USDC
+            {unlocking
+              ? "Processing..."
+              : !isConnected
+                ? "Connect Wallet to Unlock"
+                : `Pay ${price} with USDC`}
           </button>
 
           <p className="text-xs text-gray-600 mt-4 leading-relaxed">

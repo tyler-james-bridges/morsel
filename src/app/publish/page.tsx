@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Link from "next/link";
+import { useAccount, useConnect } from "wagmi";
 
 const CUISINES = [
   "italian", "mexican", "japanese", "indian", "thai",
@@ -18,6 +20,8 @@ const DIETARY = [
 const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 export default function PublishPage() {
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -35,7 +39,7 @@ export default function PublishPage() {
   const [ingredients, setIngredients] = useState("");
   const [steps, setSteps] = useState("");
   const [notes, setNotes] = useState("");
-  const [creatorAddress, setCreatorAddress] = useState("");
+  const [creatorName, setCreatorName] = useState("");
 
   function toggleDietary(tag: string) {
     setDietaryTags((prev) =>
@@ -65,7 +69,8 @@ export default function PublishPage() {
           ingredients: ingredients.split("\n").filter(Boolean),
           steps: steps.split("\n").filter(Boolean),
           notes: notes || undefined,
-          creatorAddress,
+          creatorAddress: address,
+          creatorName: creatorName || undefined,
         }),
       });
       if (res.ok) {
@@ -102,12 +107,12 @@ export default function PublishPage() {
         <p className="text-gray-400 mb-6">
           Your recipe is now live and ready to be discovered.
         </p>
-        <a
+        <Link
           href="/"
           className="text-amber-500 hover:text-amber-400 text-sm transition-colors"
         >
           Back to browse
-        </a>
+        </Link>
       </div>
     );
   }
@@ -116,27 +121,51 @@ export default function PublishPage() {
     "w-full px-3 py-2.5 rounded-lg bg-gray-900 border border-gray-800 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/25 text-sm transition-colors";
   const labelClass = "block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider";
 
+  if (!isConnected) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-100 mb-3">
+          Publish a Recipe
+        </h1>
+        <p className="text-gray-400 mb-6">
+          Connect your wallet to publish recipes and get paid directly.
+        </p>
+        <button
+          onClick={() => {
+            const connector = connectors[0];
+            if (connector) connect({ connector });
+          }}
+          className="px-6 py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm"
+        >
+          Connect Wallet
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
       <h1 className="text-2xl font-bold text-gray-100 mb-2">
         Publish a Recipe
       </h1>
-      <p className="text-sm text-gray-500 mb-8">
+      <p className="text-sm text-gray-500 mb-2">
         Share your creation with the world. Set your price and get paid
         directly for every unlock.
       </p>
+      <p className="text-xs text-gray-600 font-mono mb-8">
+        Publishing as {address?.slice(0, 6)}...{address?.slice(-4)}
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Creator address */}
+        {/* Creator name */}
         <div>
-          <label className={labelClass}>Your Wallet Address</label>
+          <label className={labelClass}>Display Name</label>
           <input
             type="text"
-            placeholder="0x..."
-            value={creatorAddress}
-            onChange={(e) => setCreatorAddress(e.target.value)}
+            placeholder="Chef Tyler"
+            value={creatorName}
+            onChange={(e) => setCreatorName(e.target.value)}
             className={inputClass}
-            required
           />
         </div>
 

@@ -1,37 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import RecipeContent from "@/components/RecipeContent";
 import PaywallOverlay from "@/components/PaywallOverlay";
-import { Recipe, RecipePreview } from "@/lib/types";
+import { RecipePreview } from "@/lib/types";
+
+interface FullContent {
+  ingredients: string[];
+  steps: string[];
+  notes?: string;
+}
 
 export default function RecipePage() {
   const params = useParams();
   const id = params.id as string;
 
   const [preview, setPreview] = useState<RecipePreview | null>(null);
-  const [fullRecipe, setFullRecipe] = useState<Recipe | null>(null);
+  const [fullContent, setFullContent] = useState<FullContent | null>(null);
   const [locked, setLocked] = useState(true);
   const [loading, setLoading] = useState(true);
+  const mounted = useRef(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || mounted.current) return;
+    mounted.current = true;
 
-    async function load() {
-      setLoading(true);
+    (async () => {
       try {
-        // Fetch preview
         const previewRes = await fetch(`/api/recipes/${id}`);
-        if (previewRes.ok) {
-          setPreview(await previewRes.json());
-        }
+        if (previewRes.ok) setPreview(await previewRes.json());
 
-        // Try to fetch full content (will 402 if not paid)
         const fullRes = await fetch(`/api/recipes/${id}/full`);
         if (fullRes.ok) {
-          setFullRecipe(await fullRes.json());
+          setFullContent(await fullRes.json());
           setLocked(false);
         } else {
           setLocked(true);
@@ -41,14 +44,12 @@ export default function RecipePage() {
       } finally {
         setLoading(false);
       }
-    }
-
-    load();
+    })();
   }, [id]);
 
-  function handleUnlock() {
-    // For MVP, open the x402 endpoint in a new tab
-    window.open(`/api/recipes/${id}/full`, "_blank");
+  function handleUnlocked(data: FullContent) {
+    setFullContent(data);
+    setLocked(false);
   }
 
   if (loading) {
@@ -150,13 +151,14 @@ export default function RecipePage() {
             price={preview.price}
             creatorName={preview.creatorName}
             recipeTitle={preview.title}
-            onUnlock={handleUnlock}
+            recipeId={id}
+            onUnlocked={handleUnlocked}
           />
-        ) : fullRecipe?.ingredients && fullRecipe?.steps ? (
+        ) : fullContent ? (
           <RecipeContent
-            ingredients={fullRecipe.ingredients}
-            steps={fullRecipe.steps}
-            notes={fullRecipe.notes}
+            ingredients={fullContent.ingredients}
+            steps={fullContent.steps}
+            notes={fullContent.notes}
             prepTime={preview.prepTime}
             cookTime={preview.cookTime}
             servings={preview.servings}

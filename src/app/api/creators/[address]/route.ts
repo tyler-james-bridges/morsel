@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
-import { creators, recipes } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { creators, recipes, unlocks } from "@/lib/schema";
+import { eq, sql } from "drizzle-orm";
 
 export async function GET(
   _req: NextRequest,
@@ -45,6 +45,26 @@ export async function GET(
     .from(recipes)
     .where(eq(recipes.creatorAddress, address));
 
+  // Compute total earned from unlocks on this creator's recipes
+  const recipeIds = creatorRecipes.map((r) => r.id);
+  let totalEarnedNum = 0;
+
+  if (recipeIds.length > 0) {
+    const earningsResult = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(${unlocks.paidAmount}), 0)`,
+      })
+      .from(unlocks)
+      .where(
+        sql`${unlocks.recipeId} IN (${sql.join(
+          recipeIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      );
+
+    totalEarnedNum = earningsResult[0]?.total ?? 0;
+  }
+
   const recipePreviews = creatorRecipes.map((r) => ({
     ...r,
     creatorAddress: address,
@@ -54,11 +74,14 @@ export async function GET(
   }));
 
   return NextResponse.json({
-    address: creator.address,
-    name: creator.name,
-    bio: creator.bio,
-    avatarUrl: creator.avatarUrl,
-    recipeCount: recipePreviews.length,
+    creator: {
+      address: creator.address,
+      name: creator.name,
+      bio: creator.bio,
+      avatarUrl: creator.avatarUrl,
+      recipeCount: recipePreviews.length,
+      totalEarned: `$${totalEarnedNum.toFixed(2)}`,
+    },
     recipes: recipePreviews,
   });
 }
