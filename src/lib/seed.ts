@@ -1,6 +1,18 @@
 import db from "./db";
 import { creators, recipes } from "./schema";
-import { v4 as uuid } from "uuid";
+import { createHash } from "crypto";
+
+// Deterministic ID from title so IDs stay consistent across cold starts
+function stableId(title: string): string {
+  const hash = createHash("sha256").update(title).digest("hex");
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    "4" + hash.slice(13, 16),
+    hash.slice(16, 20),
+    hash.slice(20, 32),
+  ].join("-");
+}
 
 const SAMPLE_CREATORS = [
   {
@@ -677,7 +689,7 @@ export async function seedDatabase() {
   // Insert recipes
   for (const recipe of SAMPLE_RECIPES) {
     await db.insert(recipes).values({
-      id: uuid(),
+      id: stableId(recipe.title),
       ...recipe,
     });
   }
