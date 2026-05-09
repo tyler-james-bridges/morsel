@@ -5,11 +5,11 @@ import { coinbaseWallet, injected } from "wagmi/connectors";
 export const config = createConfig({
   chains: [base],
   connectors: [
-    injected(),
     coinbaseWallet({
       appName: "Morsel",
-      preference: { options: "smartWalletOnly" },
+      preference: { options: "all" },
     }),
+    injected(),
   ],
   transports: {
     [base.id]: http(),
