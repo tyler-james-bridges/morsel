@@ -64,6 +64,9 @@ let initialized = false;
 export async function getDb() {
   if (!initialized) {
     await ensureTables();
+    // Auto-seed on cold start so demo data is always available
+    const { seedDatabase } = await import("./seed");
+    await seedDatabase();
     initialized = true;
   }
   return db;
