@@ -3,7 +3,8 @@ import { base } from "wagmi/chains";
 
 export const config = getDefaultConfig({
   appName: "Morsel",
-  projectId: "morsel-recipe-platform",
+  projectId:
+    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "morsel-recipe-app",
   chains: [base],
 });
 
