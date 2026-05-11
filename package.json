@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
+    "@rainbow-me/rainbowkit": "^2.2.11",
     "@tanstack/react-query": "^5.100.9",
     "better-sqlite3": "^12.9.0",
     "drizzle-orm": "^0.45.2",

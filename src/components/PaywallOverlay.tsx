@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
-import { useConnect } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 
 interface PaywallOverlayProps {
   price: string;
@@ -24,15 +24,14 @@ export default function PaywallOverlay({
   onUnlocked,
 }: PaywallOverlayProps) {
   const { isConnected, address } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { openConnectModal } = useConnectModal();
   const { data: walletClient } = useWalletClient();
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleUnlock() {
     if (!isConnected || !walletClient || !address) {
-      const connector = connectors[0];
-      if (connector) connect({ connector });
+      openConnectModal?.();
       return;
     }
 

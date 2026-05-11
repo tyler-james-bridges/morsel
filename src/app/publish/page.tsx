@@ -2,7 +2,8 @@
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const CUISINES = [
   "italian", "mexican", "japanese", "indian", "thai",
@@ -21,7 +22,7 @@ const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 export default function PublishPage() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -130,15 +131,7 @@ export default function PublishPage() {
         <p className="text-gray-400 mb-6">
           Connect your wallet to publish recipes and get paid directly.
         </p>
-        <button
-          onClick={() => {
-            const connector = connectors[0];
-            if (connector) connect({ connector });
-          }}
-          className="px-6 py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm"
-        >
-          Connect Wallet
-        </button>
+        <ConnectButton />
       </div>
     );
   }

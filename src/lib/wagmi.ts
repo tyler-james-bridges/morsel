@@ -1,19 +1,10 @@
-import { http, createConfig } from "wagmi";
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { base } from "wagmi/chains";
-import { coinbaseWallet, injected } from "wagmi/connectors";
 
-export const config = createConfig({
+export const config = getDefaultConfig({
+  appName: "Morsel",
+  projectId: "morsel-recipe-platform",
   chains: [base],
-  connectors: [
-    coinbaseWallet({
-      appName: "Morsel",
-      preference: { options: "all" },
-    }),
-    injected(),
-  ],
-  transports: {
-    [base.id]: http(),
-  },
 });
 
 declare module "wagmi" {

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
-import { useConnect } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import MasonryGrid from "@/components/MasonryGrid";
 import RecipeCard from "@/components/RecipeCard";
 import { RecipePreview } from "@/lib/types";
 
 export default function RecipeBoxPage() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+
   const [recipes, setRecipes] = useState<RecipePreview[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -57,15 +57,7 @@ export default function RecipeBoxPage() {
         <p className="text-gray-400 mb-6">
           Connect your wallet to see recipes you have unlocked.
         </p>
-        <button
-          onClick={() => {
-            const connector = connectors[0];
-            if (connector) connect({ connector });
-          }}
-          className="px-6 py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm"
-        >
-          Connect Wallet
-        </button>
+        <ConnectButton />
       </div>
     );
   }
