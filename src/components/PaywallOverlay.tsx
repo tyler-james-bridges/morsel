@@ -23,14 +23,14 @@ export default function PaywallOverlay({
   recipeId,
   onUnlocked,
 }: PaywallOverlayProps) {
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
   const { data: walletClient } = useWalletClient();
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleUnlock() {
-    if (!isConnected || !walletClient || !address) {
+    if (!isConnected || !walletClient) {
       openConnectModal?.();
       return;
     }
@@ -92,13 +92,6 @@ export default function PaywallOverlay({
       }
 
       const data = await paidRes.json();
-
-      // Step 5: Record the unlock
-      await fetch(`/api/recipes/${recipeId}/unlock`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ buyerAddress: address }),
-      });
 
       onUnlocked(data);
     } catch (err) {
