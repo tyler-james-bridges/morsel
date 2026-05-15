@@ -40,7 +40,9 @@ export default function PaywallOverlay({
 
     try {
       // Step 1: Hit the x402 endpoint to get payment requirements
-      const initialRes = await fetch(`/api/recipes/${recipeId}/full`);
+      const initialRes = await fetch(`/api/recipes/${recipeId}/full`, {
+        headers: { Accept: "application/json" },
+      });
 
       if (initialRes.ok) {
         // Already unlocked or no payment needed
@@ -53,15 +55,13 @@ export default function PaywallOverlay({
         throw new Error(`Unexpected response: ${initialRes.status}`);
       }
 
-      // Step 2: Parse 402 response for payment requirements
-      const requirementsHeader = initialRes.headers.get("x-payment-requirements");
-      if (!requirementsHeader) {
+      // Step 2: Parse 402 response body for payment requirements
+      const body = await initialRes.json();
+      if (!body.accepts || (Array.isArray(body.accepts) && body.accepts.length === 0)) {
         throw new Error("No payment requirements in 402 response");
       }
 
-      const paymentRequirements = JSON.parse(
-        Buffer.from(requirementsHeader, "base64").toString("utf-8"),
-      );
+      const paymentRequirements = body.accepts;
 
       // Step 3: Create payment header using x402 client
       const { createPaymentHeader } = await import("x402/client");
@@ -70,9 +70,7 @@ export default function PaywallOverlay({
         ? paymentRequirements[0]
         : paymentRequirements;
 
-      const x402Version = parseInt(
-        initialRes.headers.get("x-payment-version") || "1",
-      );
+      const x402Version = body.x402Version || 1;
 
       const paymentHeader = await createPaymentHeader(
         // wagmi walletClient is compatible at runtime; cast for x402 types
