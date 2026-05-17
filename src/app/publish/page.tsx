@@ -27,6 +27,10 @@ export default function PublishPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [introContent, setIntroContent] = useState("");
+  const [isFree, setIsFree] = useState(false);
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [price, setPrice] = useState("0.50");
@@ -57,6 +61,9 @@ export default function PublishPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
+          slug: slug || undefined,
+          introContent: introContent || undefined,
+          isFree,
           description,
           imageUrl,
           price: `$${price}`,
@@ -170,7 +177,17 @@ export default function PublishPage() {
               type="text"
               placeholder="Grandma's Famous Pasta"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (!slugManuallyEdited) {
+                  setSlug(
+                    e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-|-$/g, "")
+                  );
+                }
+              }}
               className={inputClass}
               required
             />
@@ -193,6 +210,46 @@ export default function PublishPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Slug */}
+        <div>
+          <label className={labelClass}>URL Slug</label>
+          <input
+            type="text"
+            placeholder="grandmas-famous-pasta"
+            value={slug}
+            onChange={(e) => {
+              setSlugManuallyEdited(true);
+              setSlug(
+                e.target.value
+                  .toLowerCase()
+                  .replace(/[^a-z0-9-]+/g, "-")
+                  .replace(/^-|-$/g, "")
+              );
+            }}
+            className={inputClass}
+          />
+          {slug && (
+            <p className="text-xs text-gray-600 mt-1 font-mono">
+              morsel.xyz/{creatorName ? creatorName.toLowerCase().replace(/\s+/g, "-") : "you"}/{slug}
+            </p>
+          )}
+        </div>
+
+        {/* Your Story */}
+        <div>
+          <label className={labelClass}>Your Story</label>
+          <textarea
+            rows={5}
+            placeholder="Tell the story behind this recipe... Why does it matter to you?"
+            value={introContent}
+            onChange={(e) => setIntroContent(e.target.value)}
+            className={`${inputClass} text-base leading-relaxed`}
+          />
+          <p className="text-xs text-gray-600 mt-1">
+            This intro is visible to everyone -- hook them before the paywall.
+          </p>
         </div>
 
         {/* Description */}
@@ -363,6 +420,27 @@ export default function PublishPage() {
             onChange={(e) => setNotes(e.target.value)}
             className={inputClass}
           />
+        </div>
+
+        {/* Free for subscribers toggle */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-900 border border-gray-800">
+          <div>
+            <p className="text-sm font-medium text-gray-200">Free for subscribers</p>
+            <p className="text-xs text-gray-500">Anyone subscribed to you can view this recipe for free</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsFree(!isFree)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              isFree ? "bg-amber-500" : "bg-gray-700"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                isFree ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
 
         {/* Submit */}

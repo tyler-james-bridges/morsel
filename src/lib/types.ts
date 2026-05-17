@@ -13,6 +13,10 @@ export interface Recipe {
   cookTime: number; // minutes
   servings: number;
   difficulty: "easy" | "medium" | "hard";
+  slug: string;
+  introContent: string;
+  isFree: boolean;
+  publishedAt: string;
   createdAt: string;
   // Gated content (only returned after x402 payment)
   ingredients?: string[];
@@ -30,8 +34,19 @@ export interface Creator {
   name: string;
   bio: string;
   avatarUrl: string;
+  slug: string;
+  bannerUrl: string;
+  socialLinks: Record<string, string>;
   recipeCount: number;
   totalEarned: string;
+}
+
+export interface Subscription {
+  id: string;
+  creatorAddress: string;
+  email: string | null;
+  walletAddress: string | null;
+  subscribedAt: string;
 }
 
 export type CuisineType =

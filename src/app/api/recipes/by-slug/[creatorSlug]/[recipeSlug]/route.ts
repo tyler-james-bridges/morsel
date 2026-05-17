@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
 import { recipes, creators } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ creatorSlug: string; recipeSlug: string }> },
 ) {
-  const { id } = await params;
+  const { creatorSlug, recipeSlug } = await params;
   await getDb();
 
   const rows = await db
@@ -18,6 +18,8 @@ export async function GET(
       creatorBio: creators.bio,
       creatorAvatarUrl: creators.avatarUrl,
       creatorSlug: creators.slug,
+      creatorBannerUrl: creators.bannerUrl,
+      creatorSocialLinks: creators.socialLinks,
       title: recipes.title,
       description: recipes.description,
       imageUrl: recipes.imageUrl,
@@ -37,8 +39,8 @@ export async function GET(
       createdAt: recipes.createdAt,
     })
     .from(recipes)
-    .leftJoin(creators, eq(recipes.creatorAddress, creators.address))
-    .where(eq(recipes.id, id));
+    .innerJoin(creators, eq(recipes.creatorAddress, creators.address))
+    .where(and(eq(creators.slug, creatorSlug), eq(recipes.slug, recipeSlug)));
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
@@ -47,19 +49,33 @@ export async function GET(
   const row = rows[0];
 
   return NextResponse.json({
-    ...row,
+    id: row.id,
+    creatorAddress: row.creatorAddress,
+    title: row.title,
+    description: row.description,
+    imageUrl: row.imageUrl,
     price: `$${row.price.toFixed(2)}`,
+    cuisine: row.cuisine,
+    mealType: row.mealType,
     dietaryTags: JSON.parse(row.dietaryTags),
+    prepTime: row.prepTime,
+    cookTime: row.cookTime,
+    servings: row.servings,
+    difficulty: row.difficulty,
     slug: row.slug,
     introContent: row.introContent,
     isFree: row.isFree === 1,
     publishedAt: row.publishedAt,
+    unlockCount: row.unlockCount,
+    createdAt: row.createdAt,
     creator: {
       address: row.creatorAddress,
       name: row.creatorName,
       bio: row.creatorBio,
       avatarUrl: row.creatorAvatarUrl,
       slug: row.creatorSlug,
+      bannerUrl: row.creatorBannerUrl,
+      socialLinks: JSON.parse(row.creatorSocialLinks),
     },
   });
 }

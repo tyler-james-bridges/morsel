@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
-import { creators, recipes, unlocks } from "@/lib/schema";
+import { creators, recipes, unlocks, subscriptions } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ address: string }> },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { address } = await params;
+  const { slug } = await params;
   await getDb();
 
   const creator = (
     await db
       .select()
       .from(creators)
-      .where(eq(creators.address, address))
+      .where(eq(creators.slug, slug))
       .limit(1)
   )[0];
 
@@ -39,13 +39,27 @@ export async function GET(
       cookTime: recipes.cookTime,
       servings: recipes.servings,
       difficulty: recipes.difficulty,
+      slug: recipes.slug,
+      introContent: recipes.introContent,
+      isFree: recipes.isFree,
+      publishedAt: recipes.publishedAt,
       unlockCount: recipes.unlockCount,
       createdAt: recipes.createdAt,
     })
     .from(recipes)
-    .where(eq(recipes.creatorAddress, address));
+    .where(eq(recipes.creatorAddress, creator.address));
 
-  // Compute total earned from unlocks on this creator's recipes
+  // Subscriber count
+  const subCountResult = await db
+    .select({
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(subscriptions)
+    .where(eq(subscriptions.creatorAddress, creator.address));
+
+  const subscriberCount = subCountResult[0]?.count ?? 0;
+
+  // Total earned from unlocks
   const recipeIds = creatorRecipes.map((r) => r.id);
   let totalEarnedNum = 0;
 
@@ -67,10 +81,11 @@ export async function GET(
 
   const recipePreviews = creatorRecipes.map((r) => ({
     ...r,
-    creatorAddress: address,
+    creatorAddress: creator.address,
     creatorName: creator.name,
     price: `$${r.price.toFixed(2)}`,
     dietaryTags: JSON.parse(r.dietaryTags),
+    isFree: Boolean(r.isFree),
   }));
 
   return NextResponse.json({
@@ -83,6 +98,7 @@ export async function GET(
       bannerUrl: creator.bannerUrl,
       socialLinks: JSON.parse(creator.socialLinks),
       recipeCount: recipePreviews.length,
+      subscriberCount,
       totalEarned: `$${totalEarnedNum.toFixed(2)}`,
     },
     recipes: recipePreviews,

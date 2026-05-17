@@ -50,9 +50,14 @@ export async function POST(req: NextRequest) {
   )[0];
 
   if (!existingCreator) {
+    const creatorSlug = creatorName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
     await db.insert(creators).values({
       address: creatorAddress,
       name: creatorName,
+      slug: creatorSlug,
       bio: (body.creatorBio as string) ?? "",
       avatarUrl: (body.creatorAvatarUrl as string) ?? "",
     });
@@ -60,10 +65,22 @@ export async function POST(req: NextRequest) {
 
   const id = uuid();
 
+  const titleStr = body.title as string;
+  const slug =
+    (body.slug as string) ||
+    titleStr
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
   await db.insert(recipes).values({
     id,
     creatorAddress,
-    title: body.title as string,
+    title: titleStr,
+    slug,
+    introContent: (body.introContent as string) ?? "",
+    isFree: body.isFree ? 1 : 0,
+    publishedAt: new Date(),
     description: body.description as string,
     imageUrl: body.imageUrl as string,
     price:

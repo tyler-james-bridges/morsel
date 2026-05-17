@@ -18,6 +18,9 @@ async function ensureTables() {
       name TEXT NOT NULL,
       bio TEXT NOT NULL DEFAULT '',
       avatar_url TEXT NOT NULL DEFAULT '',
+      slug TEXT NOT NULL UNIQUE,
+      banner_url TEXT NOT NULL DEFAULT '',
+      social_links TEXT NOT NULL DEFAULT '{}',
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
@@ -35,6 +38,10 @@ async function ensureTables() {
       cook_time INTEGER NOT NULL,
       servings INTEGER NOT NULL,
       difficulty TEXT NOT NULL DEFAULT 'medium',
+      slug TEXT NOT NULL,
+      intro_content TEXT NOT NULL DEFAULT '',
+      is_free INTEGER NOT NULL DEFAULT 0,
+      published_at INTEGER NOT NULL DEFAULT (unixepoch()),
       ingredients TEXT NOT NULL,
       steps TEXT NOT NULL,
       notes TEXT DEFAULT '',
@@ -51,9 +58,21 @@ async function ensureTables() {
       unlocked_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id TEXT PRIMARY KEY,
+      creator_address TEXT NOT NULL REFERENCES creators(address),
+      email TEXT,
+      wallet_address TEXT,
+      subscribed_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     CREATE INDEX IF NOT EXISTS idx_recipes_creator ON recipes(creator_address);
     CREATE INDEX IF NOT EXISTS idx_recipes_cuisine ON recipes(cuisine);
     CREATE INDEX IF NOT EXISTS idx_recipes_meal_type ON recipes(meal_type);
+    CREATE INDEX IF NOT EXISTS idx_recipes_slug ON recipes(slug);
+    CREATE INDEX IF NOT EXISTS idx_creators_slug ON creators(slug);
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_creator ON subscriptions(creator_address);
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_email ON subscriptions(email);
     CREATE INDEX IF NOT EXISTS idx_unlocks_buyer ON unlocks(buyer_address);
     CREATE INDEX IF NOT EXISTS idx_unlocks_recipe ON unlocks(recipe_id);
   `);

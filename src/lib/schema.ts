@@ -5,6 +5,9 @@ export const creators = sqliteTable("creators", {
   name: text("name").notNull(),
   bio: text("bio").notNull().default(""),
   avatarUrl: text("avatar_url").notNull().default(""),
+  slug: text("slug").notNull().unique(),
+  bannerUrl: text("banner_url").notNull().default(""),
+  socialLinks: text("social_links").notNull().default("{}"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -26,6 +29,12 @@ export const recipes = sqliteTable("recipes", {
   cookTime: integer("cook_time").notNull(), // minutes
   servings: integer("servings").notNull(),
   difficulty: text("difficulty").notNull().default("medium"),
+  slug: text("slug").notNull(),
+  introContent: text("intro_content").notNull().default(""),
+  isFree: integer("is_free").notNull().default(0),
+  publishedAt: integer("published_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
   // Gated content
   ingredients: text("ingredients").notNull(), // JSON array
   steps: text("steps").notNull(), // JSON array
@@ -45,6 +54,18 @@ export const unlocks = sqliteTable("unlocks", {
   paidAmount: real("paid_amount").notNull(),
   txHash: text("tx_hash"),
   unlockedAt: integer("unlocked_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const subscriptions = sqliteTable("subscriptions", {
+  id: text("id").primaryKey(),
+  creatorAddress: text("creator_address")
+    .notNull()
+    .references(() => creators.address),
+  email: text("email"),
+  walletAddress: text("wallet_address"),
+  subscribedAt: integer("subscribed_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
