@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
+import { base } from "wagmi/chains";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { buildRecipeAccessMessage } from "@/lib/wallet-auth";
 
 interface PaywallOverlayProps {
   price: string;
@@ -23,15 +25,52 @@ export default function PaywallOverlay({
   recipeId,
   onUnlocked,
 }: PaywallOverlayProps) {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
   const { data: walletClient } = useWalletClient();
   const [unlocking, setUnlocking] = useState(false);
+  const [switchingNetwork, setSwitchingNetwork] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const wrongNetwork = isConnected && chainId !== base.id;
+
+  async function createWalletAuthHeaders() {
+    if (!address || !walletClient) return null;
+
+    const timestamp = Date.now().toString();
+    const message = buildRecipeAccessMessage(recipeId, address, timestamp);
+    const signature = await walletClient.signMessage({
+      account: address,
+      message,
+    });
+
+    return {
+      "x-wallet-address": address,
+      "x-wallet-signature": signature,
+      "x-wallet-timestamp": timestamp,
+    };
+  }
+
   async function handleUnlock() {
-    if (!isConnected || !walletClient) {
+    if (!isConnected || !walletClient || !address) {
       openConnectModal?.();
+      return;
+    }
+
+    if (wrongNetwork) {
+      setSwitchingNetwork(true);
+      setError(null);
+
+      try {
+        await switchChainAsync({ chainId: base.id });
+      } catch {
+        setError("Switch to Base to unlock this recipe.");
+      } finally {
+        setSwitchingNetwork(false);
+      }
+
       return;
     }
 
@@ -39,9 +78,14 @@ export default function PaywallOverlay({
     setError(null);
 
     try {
+      const authHeaders = await createWalletAuthHeaders();
+      if (!authHeaders) {
+        throw new Error("Wallet signature is required to check access");
+      }
+
       // Step 1: Hit the x402 endpoint to get payment requirements
       const initialRes = await fetch(`/api/recipes/${recipeId}/full`, {
-        headers: { Accept: "application/json" },
+        headers: { Accept: "application/json", ...authHeaders },
       });
 
       if (initialRes.ok) {
@@ -88,7 +132,8 @@ export default function PaywallOverlay({
       });
 
       if (!paidRes.ok) {
-        throw new Error(`Payment failed: ${paidRes.status}`);
+        const paidBody = await paidRes.json().catch(() => null);
+        throw new Error(paidBody?.error || `Payment failed: ${paidRes.status}`);
       }
 
       const data = await paidRes.json();
@@ -162,14 +207,18 @@ export default function PaywallOverlay({
 
           <button
             onClick={handleUnlock}
-            disabled={unlocking}
+            disabled={unlocking || switchingNetwork}
             className="w-full py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {unlocking
+            {switchingNetwork
+              ? "Switching..."
+              : unlocking
               ? "Processing..."
               : !isConnected
                 ? "Connect Wallet to Unlock"
-                : `Pay ${price} with USDC`}
+                : wrongNetwork
+                  ? "Switch to Base"
+                  : `Pay ${price} with USDC`}
           </button>
 
           <p className="text-xs text-gray-600 mt-4 leading-relaxed">

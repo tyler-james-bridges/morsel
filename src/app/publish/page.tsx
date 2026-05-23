@@ -2,8 +2,10 @@
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
+import { base } from "wagmi/chains";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { buildCreatorPublishMessage } from "@/lib/wallet-auth";
 
 const CUISINES = [
   "italian", "mexican", "japanese", "indian", "thai",
@@ -22,9 +24,13 @@ const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 export default function PublishPage() {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const { data: walletClient } = useWalletClient();
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -55,10 +61,32 @@ export default function PublishPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setSubmitError("");
+
     try {
+      if (!address || !walletClient) {
+        throw new Error("Connect your wallet to publish");
+      }
+
+      if (chainId !== base.id) {
+        await switchChainAsync({ chainId: base.id });
+      }
+
+      const timestamp = Date.now().toString();
+      const message = buildCreatorPublishMessage(address, timestamp);
+      const signature = await walletClient.signMessage({
+        account: address,
+        message,
+      });
+
       const res = await fetch("/api/recipes/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": address,
+          "x-wallet-signature": signature,
+          "x-wallet-timestamp": timestamp,
+        },
         body: JSON.stringify({
           title,
           slug: slug || undefined,
@@ -83,9 +111,12 @@ export default function PublishPage() {
       });
       if (res.ok) {
         setSubmitted(true);
+      } else {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Unable to publish recipe");
       }
-    } catch {
-      // API not available
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Unable to publish recipe");
     } finally {
       setSubmitting(false);
     }
@@ -422,11 +453,11 @@ export default function PublishPage() {
           />
         </div>
 
-        {/* Free for subscribers toggle */}
+        {/* Free recipe toggle */}
         <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-900 border border-gray-800">
           <div>
-            <p className="text-sm font-medium text-gray-200">Free for subscribers</p>
-            <p className="text-xs text-gray-500">Anyone subscribed to you can view this recipe for free</p>
+            <p className="text-sm font-medium text-gray-200">Free recipe</p>
+            <p className="text-xs text-gray-500">Anyone can view this recipe without paying</p>
           </div>
           <button
             type="button"
@@ -444,12 +475,22 @@ export default function PublishPage() {
         </div>
 
         {/* Submit */}
+        {submitError && (
+          <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
+            {submitError}
+          </p>
+        )}
+
         <button
           type="submit"
           disabled={submitting}
           className="w-full py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? "Publishing..." : "Publish Recipe"}
+          {submitting
+            ? "Publishing..."
+            : isConnected && chainId !== base.id
+              ? "Switch to Base and Publish"
+              : "Publish Recipe"}
         </button>
       </form>
     </div>

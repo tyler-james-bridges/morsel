@@ -75,6 +75,7 @@ async function ensureTables() {
     CREATE INDEX IF NOT EXISTS idx_subscriptions_email ON subscriptions(email);
     CREATE INDEX IF NOT EXISTS idx_unlocks_buyer ON unlocks(buyer_address);
     CREATE INDEX IF NOT EXISTS idx_unlocks_recipe ON unlocks(recipe_id);
+    CREATE INDEX IF NOT EXISTS idx_unlocks_recipe_buyer ON unlocks(recipe_id, buyer_address);
   `);
 }
 
@@ -83,9 +84,11 @@ let initialized = false;
 export async function getDb() {
   if (!initialized) {
     await ensureTables();
-    // Auto-seed on cold start so demo data is always available
-    const { seedDatabase } = await import("./seed");
-    await seedDatabase();
+    if (!isVercel || process.env.SEED_DEMO_DATA === "1") {
+      // Keep placeholder demo payout addresses out of production by default.
+      const { seedDatabase } = await import("./seed");
+      await seedDatabase();
+    }
     initialized = true;
   }
   return db;

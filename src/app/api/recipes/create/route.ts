@@ -1,8 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
 import { recipes, creators } from "@/lib/schema";
+import {
+  buildCreatorPublishMessage,
+  WALLET_AUTH_WINDOW_MS,
+} from "@/lib/wallet-auth";
 import { eq } from "drizzle-orm";
+import { getAddress, isAddress, verifyMessage, type Hex } from "viem";
 import { v4 as uuid } from "uuid";
+
+async function getAuthenticatedCreatorAddress(req: NextRequest) {
+  const address = req.headers.get("x-wallet-address");
+  const signature = req.headers.get("x-wallet-signature");
+  const timestamp = req.headers.get("x-wallet-timestamp");
+
+  if (!address || !signature || !timestamp || !isAddress(address)) return null;
+
+  const issuedAt = Number(timestamp);
+  if (!Number.isFinite(issuedAt)) return null;
+  if (Math.abs(Date.now() - issuedAt) > WALLET_AUTH_WINDOW_MS) return null;
+
+  const checksumAddress = getAddress(address);
+  const message = buildCreatorPublishMessage(checksumAddress, timestamp);
+  const valid = await verifyMessage({
+    address: checksumAddress,
+    message,
+    signature: signature as Hex,
+  }).catch(() => false);
+
+  return valid ? checksumAddress : null;
+}
+
+function parseUsdPrice(value: unknown) {
+  const rawPrice =
+    typeof value === "string" ? Number(value.replace("$", "")) : value;
+
+  if (typeof rawPrice !== "number" || !Number.isFinite(rawPrice)) return null;
+
+  const cents = Math.round(rawPrice * 100);
+  if (cents < 1 || cents > 100_000_000) return null;
+  if (Math.abs(rawPrice * 100 - cents) > 1e-6) return null;
+
+  return cents / 100;
+}
 
 export async function POST(req: NextRequest) {
   await getDb();
@@ -15,7 +55,6 @@ export async function POST(req: NextRequest) {
 
   const required = [
     "creatorAddress",
-    "creatorName",
     "title",
     "description",
     "imageUrl",
@@ -37,8 +76,38 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const creatorAddress = body.creatorAddress as string;
-  const creatorName = body.creatorName as string;
+  const authenticatedCreatorAddress = await getAuthenticatedCreatorAddress(req);
+  if (!authenticatedCreatorAddress) {
+    return NextResponse.json(
+      { error: "Valid wallet signature is required to publish" },
+      { status: 401 },
+    );
+  }
+
+  if (
+    typeof body.creatorAddress !== "string" ||
+    !isAddress(body.creatorAddress) ||
+    getAddress(body.creatorAddress) !== authenticatedCreatorAddress
+  ) {
+    return NextResponse.json(
+      { error: "creatorAddress must match the publishing wallet" },
+      { status: 400 },
+    );
+  }
+
+  const parsedPrice = parseUsdPrice(body.price);
+  if (parsedPrice === null) {
+    return NextResponse.json(
+      { error: "price must be a USD amount with at most two decimals" },
+      { status: 400 },
+    );
+  }
+
+  const creatorAddress = authenticatedCreatorAddress;
+  const creatorName =
+    typeof body.creatorName === "string" && body.creatorName.trim()
+      ? body.creatorName.trim()
+      : `${creatorAddress.slice(0, 6)}...${creatorAddress.slice(-4)}`;
 
   // Auto-create creator if they don't exist
   const existingCreator = (
@@ -83,10 +152,7 @@ export async function POST(req: NextRequest) {
     publishedAt: new Date(),
     description: body.description as string,
     imageUrl: body.imageUrl as string,
-    price:
-      typeof body.price === "string"
-        ? parseFloat((body.price as string).replace("$", ""))
-        : (body.price as number),
+    price: parsedPrice,
     cuisine: body.cuisine as string,
     mealType: body.mealType as string,
     dietaryTags: Array.isArray(body.dietaryTags)
