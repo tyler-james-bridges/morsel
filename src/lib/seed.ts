@@ -726,7 +726,7 @@ const SAMPLE_RECIPES = [
   },
 ];
 
-export async function seedDatabase() {
+export async function seedDatabase(options: { freeOnly?: boolean } = {}) {
   // Check if already seeded
   const existing = await db.select().from(creators);
   if (existing.length > 0) {
@@ -743,6 +743,7 @@ export async function seedDatabase() {
     await db.insert(recipes).values({
       id: stableId(recipe.title),
       ...recipe,
+      isFree: options.freeOnly ? 1 : (recipe.isFree ?? 0),
     });
   }
 

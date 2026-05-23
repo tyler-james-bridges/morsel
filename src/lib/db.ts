@@ -84,11 +84,11 @@ let initialized = false;
 export async function getDb() {
   if (!initialized) {
     await ensureTables();
-    if (!isVercel || process.env.SEED_DEMO_DATA === "1") {
+    const { seedDatabase } = await import("./seed");
+    await seedDatabase({
       // Keep placeholder demo payout addresses out of production by default.
-      const { seedDatabase } = await import("./seed");
-      await seedDatabase();
-    }
+      freeOnly: isVercel && process.env.SEED_DEMO_PAYMENTS !== "1",
+    });
     initialized = true;
   }
   return db;
