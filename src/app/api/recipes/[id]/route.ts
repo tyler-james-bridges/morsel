@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
+import { formatRecipePrice } from "@/lib/money";
 import { recipes, creators } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
@@ -22,6 +23,7 @@ export async function GET(
       description: recipes.description,
       imageUrl: recipes.imageUrl,
       price: recipes.price,
+      priceUsdcAtomic: recipes.priceUsdcAtomic,
       cuisine: recipes.cuisine,
       mealType: recipes.mealType,
       dietaryTags: recipes.dietaryTags,
@@ -48,7 +50,7 @@ export async function GET(
 
   return NextResponse.json({
     ...row,
-    price: `$${row.price.toFixed(2)}`,
+    price: formatRecipePrice(row),
     dietaryTags: JSON.parse(row.dietaryTags),
     slug: row.slug,
     introContent: row.introContent,

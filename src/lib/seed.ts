@@ -1,6 +1,7 @@
 import db from "./db";
 import { creators, recipes } from "./schema";
 import { createHash } from "crypto";
+import { usdToUsdcAtomic } from "./money";
 
 // Deterministic ID from title so IDs stay consistent across cold starts
 function stableId(title: string): string {
@@ -743,6 +744,7 @@ export async function seedDatabase(options: { freeOnly?: boolean } = {}) {
     await db.insert(recipes).values({
       id: stableId(recipe.title),
       ...recipe,
+      priceUsdcAtomic: usdToUsdcAtomic(recipe.price),
       isFree: options.freeOnly ? 1 : (recipe.isFree ?? 0),
     });
   }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeXPaymentResponse } from "x402/shared";
+import { decodeXPaymentResponse, getDefaultAsset } from "x402/shared";
 import { withX402 } from "x402-next";
 import db, { getDb } from "@/lib/db";
+import { getPriceUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
 import { recipes, unlocks } from "@/lib/schema";
 import {
   buildRecipeAccessMessage,
@@ -39,6 +40,52 @@ async function getAuthenticatedBuyerAddress(req: NextRequest, recipeId: string) 
   }).catch(() => false);
 
   return valid ? checksumAddress.toLowerCase() : null;
+}
+
+function isUniqueConstraintError(error: unknown) {
+  const message = String(error).toLowerCase();
+  return message.includes("unique constraint") || message.includes("constraint failed");
+}
+
+async function recordUnlockOnce(
+  recipe: typeof recipes.$inferSelect,
+  buyerAddress: string,
+  txHash: string,
+) {
+  const existingUnlock = (
+    await db
+      .select({ id: unlocks.id })
+      .from(unlocks)
+      .where(
+        and(eq(unlocks.recipeId, recipe.id), eq(unlocks.buyerAddress, buyerAddress)),
+      )
+      .limit(1)
+  )[0];
+
+  if (existingUnlock) return false;
+
+  const priceUsdcAtomic = getPriceUsdcAtomic(recipe);
+
+  try {
+    await db.insert(unlocks).values({
+      id: uuid(),
+      recipeId: recipe.id,
+      buyerAddress,
+      paidAmount: usdcAtomicToUsdNumber(priceUsdcAtomic),
+      paidAmountUsdcAtomic: priceUsdcAtomic,
+      txHash,
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) return false;
+    throw error;
+  }
+
+  await db
+    .update(recipes)
+    .set({ unlockCount: sql`${recipes.unlockCount} + 1` })
+    .where(eq(recipes.id, recipe.id));
+
+  return true;
 }
 
 export async function GET(
@@ -92,7 +139,10 @@ export async function GET(
     handler,
     recipe.creatorAddress as `0x${string}`,
     {
-      price: `$${recipe.price.toFixed(2)}`,
+      price: {
+        amount: getPriceUsdcAtomic(recipe).toString(),
+        asset: getDefaultAsset("base"),
+      },
       network: "base",
       config: {
         description: `Unlock "${recipe.title}"`,
@@ -106,33 +156,7 @@ export async function GET(
   if (response.ok && paymentResponse) {
     const settlement = decodeXPaymentResponse(paymentResponse);
     const buyerAddress = settlement.payer.toLowerCase();
-    const existingUnlock = (
-      await db
-        .select({ id: unlocks.id })
-        .from(unlocks)
-        .where(
-          and(
-            eq(unlocks.recipeId, id),
-            eq(unlocks.buyerAddress, buyerAddress),
-          ),
-        )
-        .limit(1)
-    )[0];
-
-    if (!existingUnlock) {
-      await db.insert(unlocks).values({
-        id: uuid(),
-        recipeId: id,
-        buyerAddress,
-        paidAmount: recipe.price,
-        txHash: settlement.transaction,
-      });
-
-      await db
-        .update(recipes)
-        .set({ unlockCount: sql`${recipes.unlockCount} + 1` })
-        .where(eq(recipes.id, id));
-    }
+    await recordUnlockOnce(recipe, buyerAddress, settlement.transaction);
   }
 
   return response;

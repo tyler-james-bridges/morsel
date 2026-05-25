@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
+import { formatRecipePrice } from "@/lib/money";
 import { recipes, creators, unlocks } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
       recipeId: unlocks.recipeId,
       unlockedAt: unlocks.unlockedAt,
       paidAmount: unlocks.paidAmount,
+      paidAmountUsdcAtomic: unlocks.paidAmountUsdcAtomic,
     })
     .from(unlocks)
     .where(eq(unlocks.buyerAddress, address.toLowerCase()));
@@ -38,6 +40,7 @@ export async function GET(req: NextRequest) {
       description: recipes.description,
       imageUrl: recipes.imageUrl,
       price: recipes.price,
+      priceUsdcAtomic: recipes.priceUsdcAtomic,
       cuisine: recipes.cuisine,
       mealType: recipes.mealType,
       dietaryTags: recipes.dietaryTags,
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
     .filter((r) => recipeIds.includes(r.id))
     .map((r) => ({
       ...r,
-      price: `$${r.price.toFixed(2)}`,
+      price: formatRecipePrice(r),
       dietaryTags: JSON.parse(r.dietaryTags),
       unlockedAt: unlockMap.get(r.id),
     }));

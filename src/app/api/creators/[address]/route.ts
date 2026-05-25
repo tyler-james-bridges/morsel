@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
+import { formatRecipePrice, formatUsdcAtomicAsUsd } from "@/lib/money";
 import { creators, recipes, unlocks } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
 
@@ -32,6 +33,7 @@ export async function GET(
       description: recipes.description,
       imageUrl: recipes.imageUrl,
       price: recipes.price,
+      priceUsdcAtomic: recipes.priceUsdcAtomic,
       cuisine: recipes.cuisine,
       mealType: recipes.mealType,
       dietaryTags: recipes.dietaryTags,
@@ -47,12 +49,12 @@ export async function GET(
 
   // Compute total earned from unlocks on this creator's recipes
   const recipeIds = creatorRecipes.map((r) => r.id);
-  let totalEarnedNum = 0;
+  let totalEarnedUsdcAtomic = 0;
 
   if (recipeIds.length > 0) {
     const earningsResult = await db
       .select({
-        total: sql<number>`COALESCE(SUM(${unlocks.paidAmount}), 0)`,
+        total: sql<number>`COALESCE(SUM(${unlocks.paidAmountUsdcAtomic}), 0)`,
       })
       .from(unlocks)
       .where(
@@ -62,14 +64,14 @@ export async function GET(
         )})`,
       );
 
-    totalEarnedNum = earningsResult[0]?.total ?? 0;
+    totalEarnedUsdcAtomic = earningsResult[0]?.total ?? 0;
   }
 
   const recipePreviews = creatorRecipes.map((r) => ({
     ...r,
     creatorAddress: address,
     creatorName: creator.name,
-    price: `$${r.price.toFixed(2)}`,
+    price: formatRecipePrice(r),
     dietaryTags: JSON.parse(r.dietaryTags),
   }));
 
@@ -83,7 +85,7 @@ export async function GET(
       bannerUrl: creator.bannerUrl,
       socialLinks: JSON.parse(creator.socialLinks),
       recipeCount: recipePreviews.length,
-      totalEarned: `$${totalEarnedNum.toFixed(2)}`,
+      totalEarned: formatUsdcAtomicAsUsd(totalEarnedUsdcAtomic),
     },
     recipes: recipePreviews,
   });

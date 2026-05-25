@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
+import { parseUsdInputToUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
 import { recipes, creators } from "@/lib/schema";
 import {
   buildCreatorPublishMessage,
@@ -29,19 +30,6 @@ async function getAuthenticatedCreatorAddress(req: NextRequest) {
   }).catch(() => false);
 
   return valid ? checksumAddress : null;
-}
-
-function parseUsdPrice(value: unknown) {
-  const rawPrice =
-    typeof value === "string" ? Number(value.replace("$", "")) : value;
-
-  if (typeof rawPrice !== "number" || !Number.isFinite(rawPrice)) return null;
-
-  const cents = Math.round(rawPrice * 100);
-  if (cents < 1 || cents > 100_000_000) return null;
-  if (Math.abs(rawPrice * 100 - cents) > 1e-6) return null;
-
-  return cents / 100;
 }
 
 export async function POST(req: NextRequest) {
@@ -95,8 +83,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const parsedPrice = parseUsdPrice(body.price);
-  if (parsedPrice === null) {
+  const priceUsdcAtomic = parseUsdInputToUsdcAtomic(body.price);
+  if (priceUsdcAtomic === null) {
     return NextResponse.json(
       { error: "price must be a USD amount with at most two decimals" },
       { status: 400 },
@@ -152,7 +140,8 @@ export async function POST(req: NextRequest) {
     publishedAt: new Date(),
     description: body.description as string,
     imageUrl: body.imageUrl as string,
-    price: parsedPrice,
+    price: usdcAtomicToUsdNumber(priceUsdcAtomic),
+    priceUsdcAtomic,
     cuisine: body.cuisine as string,
     mealType: body.mealType as string,
     dietaryTags: Array.isArray(body.dietaryTags)

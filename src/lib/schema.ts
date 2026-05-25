@@ -21,7 +21,8 @@ export const recipes = sqliteTable("recipes", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url").notNull(),
-  price: real("price").notNull(), // USD amount (e.g. 0.50)
+  price: real("price").notNull(), // Legacy USD amount (e.g. 0.50)
+  priceUsdcAtomic: integer("price_usdc_atomic").notNull().default(0),
   cuisine: text("cuisine").notNull(),
   mealType: text("meal_type").notNull(),
   dietaryTags: text("dietary_tags").notNull().default("[]"), // JSON array
@@ -51,7 +52,10 @@ export const unlocks = sqliteTable("unlocks", {
     .notNull()
     .references(() => recipes.id),
   buyerAddress: text("buyer_address").notNull(),
-  paidAmount: real("paid_amount").notNull(),
+  paidAmount: real("paid_amount").notNull(), // Legacy USD amount
+  paidAmountUsdcAtomic: integer("paid_amount_usdc_atomic")
+    .notNull()
+    .default(0),
   txHash: text("tx_hash"),
   unlockedAt: integer("unlocked_at", { mode: "timestamp" })
     .notNull()
