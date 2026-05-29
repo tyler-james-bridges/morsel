@@ -18,10 +18,10 @@ function stableId(title: string): string {
 const SAMPLE_CREATORS = [
   {
     address: "0xa102a2cb8AAc6C7d2c477412Ebb7d41d0Ce53495",
-    name: "Tyler",
-    bio: "Software engineer who treats cooking like code. Precise, tested, no shortcuts.",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
-    slug: "tyler",
+    name: "tmoney_145",
+    bio: "Dad of 2 | SWE @Weedmaps QA to DevEx | AI tools, testing, CI/CD | Crypto, NFTs | ACK @ack_onchain",
+    avatarUrl: "https://pbs.twimg.com/profile_images/2051778368866316288/8BprVzHq.jpg",
+    slug: "tmoney145",
     bannerUrl: "",
     socialLinks: JSON.stringify({ twitter: "https://x.com/tmoney_145" }),
   },
