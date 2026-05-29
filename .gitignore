@@ -45,3 +45,12 @@ next-env.d.ts
 *.db
 *.db-wal
 *.db-shm
+
+# OpenClaw workspace files
+.openclaw/
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+SPEC-*.md
