@@ -103,18 +103,18 @@ export default function RecipeArticlePage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 animate-pulse">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-full bg-gray-900" />
+          <div className="w-[42px] h-[42px] rounded-[3px] bg-card-2" />
           <div className="space-y-2">
-            <div className="h-3 bg-gray-900 rounded w-24" />
-            <div className="h-2 bg-gray-900 rounded w-16" />
+            <div className="h-3 bg-card-2 rounded-[3px] w-24" />
+            <div className="h-2 bg-card-2 rounded-[3px] w-16" />
           </div>
         </div>
-        <div className="h-8 bg-gray-900 rounded w-3/4 mb-4" />
-        <div className="h-64 bg-gray-900 rounded-xl mb-8" />
+        <div className="h-8 bg-card-2 rounded-[3px] w-3/4 mb-4" />
+        <div className="h-64 bg-card-2 rounded-[4px] mb-8" />
         <div className="space-y-3">
-          <div className="h-4 bg-gray-900 rounded w-full" />
-          <div className="h-4 bg-gray-900 rounded w-5/6" />
-          <div className="h-4 bg-gray-900 rounded w-4/5" />
+          <div className="h-4 bg-card-2 rounded-[3px] w-full" />
+          <div className="h-4 bg-card-2 rounded-[3px] w-5/6" />
+          <div className="h-4 bg-card-2 rounded-[3px] w-4/5" />
         </div>
       </div>
     );
@@ -123,11 +123,9 @@ export default function RecipeArticlePage() {
   if (!recipe) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-500 text-lg">Recipe not found.</p>
-        <Link
-          href="/"
-          className="text-amber-500 hover:text-amber-400 text-sm mt-2 inline-block"
-        >
+        <h1 className="display text-[40px] mb-2">Not found</h1>
+        <p className="text-ink-3 mb-4">That page seems to have been eaten.</p>
+        <Link href="/" className="btn-ink inline-block px-5 py-2.5 text-sm">
           Back to browse
         </Link>
       </div>
@@ -139,80 +137,79 @@ export default function RecipeArticlePage() {
     { year: "numeric", month: "long", day: "numeric" },
   );
 
-  const totalTime = recipe.prepTime + recipe.cookTime;
-
   return (
-    <article className="max-w-2xl mx-auto px-4 py-8">
+    <article className="max-w-2xl mx-auto px-4 py-10">
       {/* Creator byline */}
-      <div className="flex items-center gap-3 mb-8">
-        <Link href={`/creator/${recipe.creator.address}`}>
+      <div className="flex items-center justify-between mb-[22px]">
+        <Link href={`/${recipe.creator.slug}`} className="flex items-center gap-3 group">
           {recipe.creator.avatarUrl ? (
             <img
               src={recipe.creator.avatarUrl}
               alt={recipe.creator.name}
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-[42px] h-[42px] rounded-[3px] object-cover"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <span className="text-amber-500 text-sm font-bold">
-                {recipe.creator.name.charAt(0).toUpperCase()}
-              </span>
+            <div className="w-[42px] h-[42px] rounded-[3px] bg-paper-2 grid place-items-center display text-lg text-ink-2">
+              {recipe.creator.name.charAt(0).toUpperCase()}
             </div>
           )}
-        </Link>
-        <div>
-          <Link
-            href={`/creator/${recipe.creator.address}`}
-            className="text-sm font-medium text-gray-200 hover:text-amber-500 transition-colors"
-          >
-            {recipe.creator.name}
-          </Link>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <time>{publishDate}</time>
-            <span>-</span>
-            <span>{totalTime} min read</span>
+          <div>
+            <div className="text-[15px] font-semibold group-hover:text-accent transition-colors">
+              {recipe.creator.name}
+            </div>
+            <div className="font-mono text-[11.5px] text-ink-4 whitespace-nowrap">
+              {publishDate}
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Title */}
-      <h1 className="text-3xl sm:text-4xl font-bold text-gray-100 leading-tight mb-4">
-        {recipe.title}
-      </h1>
-
-      {/* Subtitle / description */}
-      <p className="text-lg text-gray-400 mb-8 leading-relaxed">
-        {recipe.description}
-      </p>
-
-      {/* Hero image */}
-      <div className="relative rounded-xl overflow-hidden mb-10">
-        <img
-          src={recipe.imageUrl}
-          alt={recipe.title}
-          className="w-full h-64 sm:h-96 object-cover"
-        />
+        </Link>
       </div>
 
       {/* Tags */}
-      <div className="flex flex-wrap items-center gap-2 mb-8">
-        <span className="text-xs px-2.5 py-1 rounded-full bg-gray-900 text-gray-400 border border-gray-800/50 capitalize">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span className="px-2.5 py-1 rounded-[3px] border-[1.5px] border-ink/30 text-[12.5px] font-semibold text-ink-2 capitalize">
           {recipe.cuisine}
         </span>
-        <span className="text-xs px-2.5 py-1 rounded-full bg-gray-900 text-gray-400 border border-gray-800/50 capitalize">
+        <span className="px-2.5 py-1 rounded-[3px] border-[1.5px] border-ink/30 text-[12.5px] font-semibold text-ink-2 capitalize">
           {recipe.mealType}
         </span>
         {recipe.dietaryTags.map((tag) => (
           <span
             key={tag}
-            className="text-xs px-2.5 py-1 rounded-full bg-gray-900 text-gray-400 border border-gray-800/50 capitalize"
+            className="px-2.5 py-1 rounded-[3px] border-[1.5px] border-ink/30 text-[12.5px] font-semibold text-ink-2 capitalize"
           >
             {tag}
           </span>
         ))}
       </div>
 
-      {/* Intro content - always visible */}
+      {/* Title */}
+      <h1 className="display text-[clamp(34px,5vw,52px)] mb-4 leading-[1.05]">
+        {recipe.title}
+      </h1>
+
+      {/* Subtitle */}
+      <p className="text-[20px] text-ink-2 leading-[1.5] mb-7">
+        {recipe.description}
+      </p>
+
+      {/* Hero image */}
+      <div className="relative rounded-[4px] overflow-hidden mb-3.5">
+        <img
+          src={recipe.imageUrl}
+          alt={recipe.title}
+          className="w-full aspect-[16/9] object-cover"
+        />
+      </div>
+
+      {/* Agent badge */}
+      <div className="flex justify-end mb-9">
+        <span className="agent-badge">
+          <span className="diamond" />
+          recipe_full &middot; {recipe.price}
+        </span>
+      </div>
+
+      {/* Intro content — always visible */}
       {recipe.introContent && (
         <div className="mb-10">
           <IntroContent content={recipe.introContent} />
@@ -221,20 +218,16 @@ export default function RecipeArticlePage() {
 
       {/* Divider / paywall boundary */}
       {locked && (
-        <div className="relative my-10">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-800" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-gray-950 px-4 text-sm text-gray-500">
-              Continue reading for the full recipe
-            </span>
-          </div>
+        <div className="relative my-8 text-center">
+          <div className="absolute top-1/2 left-0 right-0 border-t-[1.5px] border-ink/15" />
+          <span className="relative bg-paper px-3.5 font-mono text-[11.5px] text-ink-4 uppercase tracking-[0.12em]">
+            The full recipe
+          </span>
         </div>
       )}
 
       {/* Content or Paywall */}
-      <div>
+      <div className={locked ? "" : "mt-10"}>
         {locked ? (
           <PaywallOverlay
             price={recipe.price}
@@ -244,7 +237,7 @@ export default function RecipeArticlePage() {
             onUnlocked={handleUnlocked}
           />
         ) : fullContent ? (
-          <div className="border-t border-gray-800/50 pt-8">
+          <div className="border-t-[1.5px] border-ink/15 pt-8">
             <RecipeContent
               ingredients={fullContent.ingredients}
               steps={fullContent.steps}
@@ -258,38 +251,34 @@ export default function RecipeArticlePage() {
         ) : null}
       </div>
 
-      {/* Footer */}
-      <div className="mt-12 pt-8 border-t border-gray-800/50">
-        <div className="flex items-center gap-3">
-          <Link href={`/creator/${recipe.creator.address}`}>
-            {recipe.creator.avatarUrl ? (
-              <img
-                src={recipe.creator.avatarUrl}
-                alt={recipe.creator.name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <span className="text-amber-500 font-bold">
+      {/* Creator footer */}
+      <div className="border-t-[1.5px] border-ink/15 mt-12 pt-7">
+        <Link href={`/${recipe.creator.slug}`} className="press-card block p-[22px]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {recipe.creator.avatarUrl ? (
+                <img
+                  src={recipe.creator.avatarUrl}
+                  alt={recipe.creator.name}
+                  className="w-[52px] h-[52px] rounded-[3px] object-cover"
+                />
+              ) : (
+                <div className="w-[52px] h-[52px] rounded-[3px] bg-paper-2 grid place-items-center display text-2xl text-ink-2">
                   {recipe.creator.name.charAt(0).toUpperCase()}
-                </span>
+                </div>
+              )}
+              <div>
+                <div className="display text-[19px]">{recipe.creator.name}</div>
+                {recipe.creator.bio && (
+                  <p className="text-[13.5px] text-ink-3 max-w-[360px] line-clamp-1">{recipe.creator.bio}</p>
+                )}
               </div>
-            )}
-          </Link>
-          <div>
-            <Link
-              href={`/creator/${recipe.creator.address}`}
-              className="text-sm font-medium text-gray-200 hover:text-amber-500 transition-colors"
-            >
-              {recipe.creator.name}
-            </Link>
-            {recipe.creator.bio && (
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                {recipe.creator.bio}
-              </p>
-            )}
+            </div>
+            <span className="px-3 py-[5px] rounded-[3px] border-[1.5px] border-ink/30 text-[12.5px] font-medium text-ink-2 hover:border-ink hover:text-ink transition-colors shrink-0">
+              View profile
+            </span>
           </div>
-        </div>
+        </Link>
       </div>
     </article>
   );

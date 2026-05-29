@@ -18,6 +18,13 @@ interface PaywallOverlayProps {
   }) => void;
 }
 
+const UNLOCK_STEPS = [
+  "Requesting payment terms...",
+  "Awaiting signature in wallet...",
+  "Settling USDC on Base...",
+  "Unlocked!",
+];
+
 export default function PaywallOverlay({
   price,
   creatorName,
@@ -33,8 +40,10 @@ export default function PaywallOverlay({
   const [unlocking, setUnlocking] = useState(false);
   const [switchingNetwork, setSwitchingNetwork] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stage, setStage] = useState(-1);
 
   const wrongNetwork = isConnected && chainId !== base.id;
+  const busy = stage >= 0;
 
   async function createWalletAuthHeaders() {
     if (!address || !walletClient) return null;
@@ -69,6 +78,7 @@ export default function PaywallOverlay({
     setError(null);
 
     try {
+      setStage(0);
       const authHeaders = await createWalletAuthHeaders();
       if (!authHeaders) {
         throw new Error("Wallet signature is required to check access");
@@ -80,7 +90,7 @@ export default function PaywallOverlay({
       });
 
       if (initialRes.ok) {
-        // Already unlocked or no payment needed
+        setStage(3);
         const data = await initialRes.json();
         onUnlocked(data);
         return;
@@ -91,6 +101,7 @@ export default function PaywallOverlay({
       }
 
       // Step 2: Parse 402 response body for payment requirements
+      setStage(1);
       const body = await initialRes.json();
       if (!body.accepts || (Array.isArray(body.accepts) && body.accepts.length === 0)) {
         throw new Error("No payment requirements in 402 response");
@@ -120,6 +131,7 @@ export default function PaywallOverlay({
       );
 
       // Step 4: Re-fetch with payment header
+      setStage(2);
       const paidRes = await fetch(`/api/recipes/${recipeId}/full`, {
         headers: {
           "x-payment": paymentHeader,
@@ -131,12 +143,14 @@ export default function PaywallOverlay({
         throw new Error(paidBody?.error || `Payment failed: ${paidRes.status}`);
       }
 
+      setStage(3);
       const data = await paidRes.json();
 
       onUnlocked(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Payment failed";
       setError(msg);
+      setStage(-1);
     } finally {
       setUnlocking(false);
     }
@@ -144,84 +158,150 @@ export default function PaywallOverlay({
 
   return (
     <div className="relative">
-      {/* Blurred placeholder content */}
-      <div className="blur-md opacity-30 select-none pointer-events-none">
-        <div className="space-y-6 p-6">
-          <div className="grid grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-gray-800 rounded-lg h-16" />
-            ))}
-          </div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-800 rounded w-1/3" />
-            <div className="h-3 bg-gray-800 rounded w-full" />
-            <div className="h-3 bg-gray-800 rounded w-5/6" />
-            <div className="h-3 bg-gray-800 rounded w-4/5" />
-            <div className="h-3 bg-gray-800 rounded w-full" />
-            <div className="h-3 bg-gray-800 rounded w-3/4" />
-          </div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-800 rounded w-1/4" />
-            <div className="h-3 bg-gray-800 rounded w-full" />
-            <div className="h-3 bg-gray-800 rounded w-5/6" />
-            <div className="h-3 bg-gray-800 rounded w-full" />
-          </div>
+      {/* Blurred teaser of locked content */}
+      <div
+        aria-hidden="true"
+        className="select-none pointer-events-none"
+        style={{
+          filter: "blur(7px)",
+          opacity: 0.4,
+          maskImage: "linear-gradient(to bottom, #000 0%, transparent 62%)",
+          WebkitMaskImage: "linear-gradient(to bottom, #000 0%, transparent 62%)",
+          paddingBottom: 40,
+        }}
+      >
+        {/* Meta bar placeholder */}
+        <div className="grid grid-cols-4 gap-px bg-ink/15 border border-ink/15 rounded-[4px] overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-card p-3.5 text-center">
+              <div className="w-[17px] h-[17px] mx-auto mb-1.5 rounded-[3px] bg-paper-2" />
+              <div className="h-2.5 bg-paper-2 rounded-[3px] w-2/3 mx-auto mb-1" />
+              <div className="h-3.5 bg-paper-2 rounded-[3px] w-1/2 mx-auto" />
+            </div>
+          ))}
         </div>
+        <div className="h-6" />
+        <div className="display text-[30px] mb-4">Ingredients</div>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-3.5 bg-card-2 rounded-[3px] my-3" style={{ width: `${90 - i * 7}%` }} />
+        ))}
+        <div className="display text-[30px] mt-7 mb-4">Method</div>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-3 bg-card-2 rounded-[3px] my-2.5" style={{ width: i === 1 ? "80%" : "100%" }} />
+        ))}
       </div>
 
-      {/* Overlay card */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl shadow-black/50">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-amber-500/10 flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-amber-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
+      {/* Unlock card — receipt style */}
+      <div
+        className="absolute left-1/2 top-[30px] z-10"
+        style={{ transform: "translateX(-50%)", width: 400, maxWidth: "94%" }}
+      >
+        <div className="press-card relative p-7 text-center border-ink shadow-[7px_7px_0_var(--color-ink)]">
+          {/* Perforated top edge */}
+          <div className="perf absolute top-[-1px] left-0 right-0" />
+
+          {/* Lock/unlock icon tile */}
+          <div
+            className="w-[50px] h-[50px] mx-auto mb-4 rounded-[4px] grid place-items-center bg-ink text-accent transition-transform duration-400"
+            style={{ transform: stage === 3 ? "scale(1.1) rotate(-4deg)" : "none" }}
+          >
+            <svg className="w-[23px] h-[23px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              {stage === 3 ? (
+                <><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 017-2.5" /></>
+              ) : (
+                <><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></>
+              )}
             </svg>
           </div>
 
-          <h3 className="text-lg font-semibold text-gray-100 mb-1">
-            Unlock this recipe
-          </h3>
-          <p className="text-sm text-gray-500 mb-1">{recipeTitle}</p>
-          <p className="text-sm text-gray-500 mb-6">by {creatorName}</p>
+          {!busy ? (
+            <>
+              <h3 className="display text-[23px] mb-1.5">Unlock the full recipe</h3>
+              <p className="text-[14px] text-ink-3 mb-1">{recipeTitle}</p>
+              <p className="text-[13.5px] text-ink-3 mb-5">
+                Supports <span className="text-ink-2">{creatorName}</span> directly
+              </p>
 
-          {error && (
-            <p className="text-sm text-red-400 mb-4 bg-red-500/10 rounded-lg px-3 py-2">
-              {error}
-            </p>
+              {error && (
+                <p className="text-sm text-red-700 mb-4 bg-red-100 rounded-[4px] px-3 py-2 border border-red-200">
+                  {error}
+                </p>
+              )}
+
+              <button
+                onClick={handleUnlock}
+                disabled={unlocking || switchingNetwork}
+                className="btn-ink w-full py-3.5 text-[15px] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {switchingNetwork
+                  ? "Switching..."
+                  : unlocking
+                  ? "Processing..."
+                  : !isConnected
+                    ? "Connect wallet to unlock"
+                    : wrongNetwork
+                      ? "Switch to Base"
+                      : <>Pay {price} <span className="font-mono font-medium">USDC</span></>}
+              </button>
+
+              <div className="flex items-center justify-center gap-4 mt-4 text-ink-4 text-[11.5px]">
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-[13px] h-[13px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M13 3L5 13h6l-1 8 8-10h-6z" />
+                  </svg>
+                  Instant on Base
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-[13px] h-[13px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12l4 4 10-11" />
+                  </svg>
+                  No subscription
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="py-1.5">
+              <h3 className="display text-[22px] mb-[18px]">
+                {stage === 3 ? "Enjoy the recipe" : "Unlocking..."}
+              </h3>
+              <div className="flex flex-col gap-[11px] text-left max-w-[280px] mx-auto">
+                {UNLOCK_STEPS.map((s, i) => {
+                  const priceVal = price.replace("$", "");
+                  const stepText = s.replace("USDC", `${priceVal} USDC`);
+                  return (
+                    <div key={i} className="flex items-center gap-3" style={{ opacity: i <= stage ? 1 : 0.32, transition: "opacity .3s" }}>
+                      <span
+                        className="w-[18px] h-[18px] rounded-full flex-none grid place-items-center border-[1.5px] transition-all"
+                        style={{
+                          background: (i < stage || (i === stage && i === 3)) ? "var(--color-accent)" : "transparent",
+                          borderColor: i <= stage ? "var(--color-accent)" : "var(--color-ink-4)",
+                          color: "var(--color-accent-ink)",
+                        }}
+                      >
+                        {(i < stage || (i === stage && i === 3)) ? (
+                          <svg className="w-[11px] h-[11px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12l4 4 10-11" />
+                          </svg>
+                        ) : i === stage ? (
+                          <span className="w-[9px] h-[9px] border-[1.5px] border-accent border-t-transparent rounded-full animate-spin" />
+                        ) : null}
+                      </span>
+                      <span className="font-mono text-[12.5px]" style={{ color: i <= stage ? "var(--color-ink-2)" : "var(--color-ink-4)" }}>
+                        {stepText}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
-
-          <button
-            onClick={handleUnlock}
-            disabled={unlocking || switchingNetwork}
-            className="w-full py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {switchingNetwork
-              ? "Switching..."
-              : unlocking
-              ? "Processing..."
-              : !isConnected
-                ? "Connect Wallet to Unlock"
-                : wrongNetwork
-                  ? "Switch to Base"
-                  : `Pay ${price} with USDC`}
-          </button>
-
-          <p className="text-xs text-gray-600 mt-4 leading-relaxed">
-            Instant payment on Base. No subscription.
-            <br />
-            Creator gets paid directly.
-          </p>
         </div>
+
+        {!busy && (
+          <p className="font-mono text-[10.5px] text-ink-4 text-center mt-3.5">
+            x402 &middot; USDC on Base &middot; creator receives {price}
+          </p>
+        )}
       </div>
     </div>
   );

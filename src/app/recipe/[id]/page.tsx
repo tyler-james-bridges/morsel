@@ -40,10 +40,11 @@ export default function RecipeRedirectPage() {
   if (notFound) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-500 text-lg">Recipe not found.</p>
+        <h1 className="display text-[40px] mb-2">Not found</h1>
+        <p className="text-ink-3">That page seems to have been eaten.</p>
         <Link
           href="/"
-          className="text-amber-500 hover:text-amber-400 text-sm mt-2 inline-block"
+          className="btn-ink inline-block px-5 py-2.5 text-sm mt-4"
         >
           Back to browse
         </Link>
@@ -53,9 +54,9 @@ export default function RecipeRedirectPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 animate-pulse">
-      <div className="h-80 bg-gray-900 rounded-xl mb-8" />
-      <div className="h-8 bg-gray-900 rounded w-2/3 mb-4" />
-      <div className="h-4 bg-gray-900 rounded w-1/3 mb-8" />
+      <div className="h-80 bg-card-2 rounded-[4px] mb-8" />
+      <div className="h-8 bg-card-2 rounded-[4px] w-2/3 mb-4" />
+      <div className="h-4 bg-card-2 rounded-[4px] w-1/3 mb-8" />
     </div>
   );
 }

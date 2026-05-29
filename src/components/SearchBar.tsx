@@ -79,49 +79,56 @@ export default function SearchBar({ onChange }: SearchBarProps) {
   }
 
   const hasFilters = cuisine || mealType || dietary.length > 0;
+  const activeCount = (cuisine ? 1 : 0) + (mealType ? 1 : 0) + dietary.length;
 
   return (
     <div className="w-full space-y-3">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[220px]">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink-3"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
+            <circle cx="11" cy="11" r="7" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M21 21l-4-4" />
           </svg>
           <input
             type="text"
-            placeholder="Search recipes..."
+            placeholder="Search recipes, creators, cuisines..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               update({ query: e.target.value });
             }}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-gray-900 border border-gray-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/25 text-sm transition-colors"
+            className="w-full pl-11 pr-4 h-12 rounded-[4px] bg-card border-[1.5px] border-ink/30 text-ink placeholder-ink-4 focus:outline-none focus:border-ink text-[15px] font-sans transition-colors"
           />
+          {query && (
+            <button
+              onClick={() => { setQuery(""); update({ query: "" }); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-ink-3 hover:text-ink transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          )}
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+          className={`h-12 px-4 rounded-[4px] border-[1.5px] text-sm font-medium transition-colors ${
             showFilters || hasFilters
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-              : "bg-gray-900 border-gray-800 text-gray-400 hover:text-gray-200"
+              ? "border-accent text-accent bg-accent/5"
+              : "border-ink/30 text-ink-2 hover:border-ink hover:text-ink"
           }`}
         >
-          Filters{hasFilters ? ` (${(cuisine ? 1 : 0) + (mealType ? 1 : 0) + dietary.length})` : ""}
+          Filters{hasFilters ? ` (${activeCount})` : ""}
         </button>
         {hasFilters && (
           <button
             onClick={clearAll}
-            className="px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:text-gray-300 transition-colors"
+            className="h-12 px-3 text-sm text-ink-3 hover:text-ink transition-colors"
           >
             Clear
           </button>
@@ -129,11 +136,9 @@ export default function SearchBar({ onChange }: SearchBarProps) {
       </div>
 
       {showFilters && (
-        <div className="space-y-4 p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+        <div className="space-y-4 p-4 bg-card-2 rounded-[4px] border-[1.5px] border-ink/15">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">
-              Cuisine
-            </label>
+            <span className="eyebrow mb-2.5 block">Cuisine</span>
             <div className="flex flex-wrap gap-2">
               {CUISINES.map((c) => (
                 <button
@@ -143,10 +148,10 @@ export default function SearchBar({ onChange }: SearchBarProps) {
                     setCuisine(next);
                     update({ cuisine: next });
                   }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${
+                  className={`px-3 py-1.5 rounded-[3px] text-xs font-semibold transition-colors capitalize border-[1.5px] ${
                     cuisine === c
-                      ? "bg-amber-500 text-gray-950"
-                      : "bg-gray-800 text-gray-400 hover:text-gray-200"
+                      ? "bg-accent text-accent-ink border-ink"
+                      : "bg-card border-ink/30 text-ink-2 hover:border-ink hover:text-ink"
                   }`}
                 >
                   {c}
@@ -156,9 +161,7 @@ export default function SearchBar({ onChange }: SearchBarProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">
-              Meal Type
-            </label>
+            <span className="eyebrow mb-2.5 block">Meal Type</span>
             <div className="flex flex-wrap gap-2">
               {MEAL_TYPES.map((m) => (
                 <button
@@ -168,10 +171,10 @@ export default function SearchBar({ onChange }: SearchBarProps) {
                     setMealType(next);
                     update({ mealType: next });
                   }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${
+                  className={`px-3 py-1.5 rounded-[3px] text-xs font-semibold transition-colors capitalize border-[1.5px] ${
                     mealType === m
-                      ? "bg-amber-500 text-gray-950"
-                      : "bg-gray-800 text-gray-400 hover:text-gray-200"
+                      ? "bg-accent text-accent-ink border-ink"
+                      : "bg-card border-ink/30 text-ink-2 hover:border-ink hover:text-ink"
                   }`}
                 >
                   {m}
@@ -181,18 +184,16 @@ export default function SearchBar({ onChange }: SearchBarProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">
-              Dietary
-            </label>
+            <span className="eyebrow mb-2.5 block">Dietary</span>
             <div className="flex flex-wrap gap-2">
               {DIETARY.map((d) => (
                 <button
                   key={d}
                   onClick={() => toggleDietary(d)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${
+                  className={`px-3 py-1.5 rounded-[3px] text-xs font-semibold transition-colors capitalize border-[1.5px] ${
                     dietary.includes(d)
-                      ? "bg-amber-500 text-gray-950"
-                      : "bg-gray-800 text-gray-400 hover:text-gray-200"
+                      ? "bg-accent text-accent-ink border-ink"
+                      : "bg-card border-ink/30 text-ink-2 hover:border-ink hover:text-ink"
                   }`}
                 >
                   {d}

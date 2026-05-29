@@ -10,11 +10,11 @@ export default function IntroContent({ content }: IntroContentProps) {
   const paragraphs = content.split("\n\n").filter(Boolean);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-[22px]">
       {paragraphs.map((paragraph, i) => (
         <p
           key={i}
-          className="text-gray-300 text-lg leading-relaxed tracking-wide"
+          className="text-ink text-[18px] leading-[1.72]"
         >
           {paragraph}
         </p>

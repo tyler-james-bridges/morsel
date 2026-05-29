@@ -1,42 +1,163 @@
 @import "tailwindcss";
 
-@theme inline {
-  --color-amber-500: #f59e0b;
-  --color-amber-600: #d97706;
-  --color-amber-400: #fbbf24;
-  --color-orange-500: #f97316;
+/* ============================================================
+   Morsel — "Test Kitchen Press" design system
+   Printed food-magazine aesthetic: warm cream canvas, ink type,
+   one confident accent, print motifs (stickers, stamps, perforation).
+
+   Tailwind v4: semantic tokens live in @theme and become utilities
+   (bg-paper, text-ink, border-ink, font-display, etc.).
+   ============================================================ */
+
+@theme {
+  /* ---- canvas (warm cream) ---- */
+  --color-paper:    #f4efe4;
+  --color-paper-2:  #ebe4d4;
+  --color-card:     #fdfbf5;
+  --color-card-2:   #f6f1e7;
+
+  /* ---- ink (warm near-black ramp) ---- */
+  --color-ink:      #20201c;
+  --color-ink-2:    #565248;
+  --color-ink-3:    #8a8479;
+  --color-ink-4:    #aaa496;
+
+  /* ---- accent (deep herb green — default "Sage") ---- */
+  --color-accent:       #386b4c;
+  --color-accent-deep:  #2c5740;
+  --color-accent-ink:   #f4efe4;
+
+  /* ---- type (Next font variables from layout.tsx) ---- */
+  --font-display: var(--font-bricolage), system-ui, sans-serif;
+  --font-sans:    var(--font-hanken), system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ---- radii (small, print-like) ---- */
+  --radius-card:  4px;
+  --radius-tag:   3px;
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #374151 #111827;
+/* ============================================================
+   PALETTES — toggle by setting data-palette on <html>.
+   Each only overrides --color-accent* (canvas stays cream) except
+   "espresso", which is a full dark edition.
+   ============================================================ */
+[data-palette="sage"]   { --color-accent:#386b4c; --color-accent-deep:#2c5740; --color-accent-ink:#f4efe4; }
+[data-palette="red"]    { --color-accent:#cc3b2a; --color-accent-deep:#ad2f20; --color-accent-ink:#fdf3ee; }
+[data-palette="orange"] { --color-accent:#e0571c; --color-accent-deep:#c34813; --color-accent-ink:#fdf2e9; }
+[data-palette="ink"]    { --color-accent:#25241f; --color-accent-deep:#000000; --color-accent-ink:#f4efe4; }
+[data-palette="espresso"] {
+  --color-paper:#181712; --color-paper-2:#110f0b; --color-card:#211f19; --color-card-2:#2a271f;
+  --color-ink:#f0e9da; --color-ink-2:#b6ad9c; --color-ink-3:#8b8274; --color-ink-4:#6a6356;
+  --color-accent:#6fae84; --color-accent-deep:#5d9b72; --color-accent-ink:#15241b;
 }
 
-*::-webkit-scrollbar {
-  width: 6px;
-}
-
-*::-webkit-scrollbar-track {
-  background: #111827;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
-}
-
-html {
-  scroll-behavior: smooth;
-}
+/* ============================================================
+   BASE
+   ============================================================ */
+html { scroll-behavior: smooth; }
 
 body {
-  background: #030712;
-  color: #f3f4f6;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16.5px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+
+::selection { background: var(--color-ink); color: var(--color-paper); }
+
+/* paper grain — toggle by removing this rule or setting opacity 0 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(32, 32, 28, 0.06) 0.5px, transparent 0.6px);
+  background-size: 4px 4px;
+  mix-blend-mode: multiply;
+}
+
+/* scrollbar — follows the palette */
+* { scrollbar-width: thin; scrollbar-color: var(--color-ink-4) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--color-ink-4); border-radius: 0; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* ============================================================
+   COMPONENT CLASSES (the print motifs)
+   Use these alongside Tailwind utilities.
+   ============================================================ */
+
+/* display headline helper */
+.display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; line-height: 0.98; }
+.display-tight { letter-spacing: -0.035em; }
+
+/* mono eyebrow / kicker */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-ink-3); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.eyebrow::before { content: ""; width: 16px; height: 1.5px; background: var(--color-accent); display: inline-block; }
+.eyebrow.no-rule::before { display: none; }
+
+/* knockout — accent marker block behind a hero word */
+.knockout {
+  display: inline-block; background: var(--color-accent); color: var(--color-accent-ink);
+  padding: 0 0.12em 0.04em; border: 2px solid var(--color-ink);
+  box-shadow: 4px 4px 0 var(--color-ink); transform: rotate(-1.5deg); line-height: 1.05;
+}
+
+/* price = deli sticker */
+.price-badge {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: -0.03em;
+  padding: 6px 11px; border-radius: var(--radius-tag);
+  background: var(--color-accent); color: var(--color-accent-ink);
+  border: 1.5px solid var(--color-ink); box-shadow: 2px 2px 0 var(--color-ink);
+  display: inline-flex; align-items: center;
+}
+
+/* agent / onchain = inked stamp */
+.agent-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+  color: var(--color-paper); background: var(--color-ink);
+  border: 1.5px solid var(--color-ink); border-radius: var(--radius-tag); padding: 5px 10px;
+}
+.agent-badge .diamond { width: 6px; height: 6px; background: var(--color-accent); transform: rotate(45deg); }
+
+/* card with hard offset-shadow hover (the signature interaction) */
+.press-card {
+  background: var(--color-card);
+  border: 1.5px solid var(--color-line, rgba(32,32,28,0.30));
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: transform .18s cubic-bezier(.2,.7,.2,1), border-color .18s ease, box-shadow .18s ease;
+}
+.press-card:hover {
+  transform: translate(-3px, -3px);
+  border-color: var(--color-ink);
+  box-shadow: 7px 7px 0 var(--color-ink);
+}
+
+/* perforated receipt edge (paywall) */
+.perf {
+  height: 12px;
+  background-image: radial-gradient(circle at 8px 12px, var(--color-paper) 7px, transparent 7px);
+  background-size: 16px 12px; background-repeat: repeat-x;
+}
+
+/* button: ink with accent offset on hover */
+.btn-ink {
+  background: var(--color-ink); color: var(--color-paper);
+  border: 1.5px solid var(--color-ink); border-radius: var(--radius-card);
+  font-weight: 700; transition: box-shadow .16s ease, transform .12s ease;
+}
+.btn-ink:hover { box-shadow: 4px 4px 0 var(--color-accent); transform: translate(-1px,-1px); }

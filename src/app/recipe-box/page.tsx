@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
 import MasonryGrid from "@/components/MasonryGrid";
 import RecipeCard from "@/components/RecipeCard";
 import { RecipePreview } from "@/lib/types";
@@ -36,68 +37,62 @@ export default function RecipeBoxPage() {
   if (!isConnected) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-amber-500/10 flex items-center justify-center">
-          <svg
-            className="w-8 h-8 text-amber-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-            />
-          </svg>
+        <div className="press-card inline-block p-[60px_30px]">
+          <div className="w-14 h-14 mx-auto mb-[18px] rounded-[4px] bg-accent/10 grid place-items-center text-accent">
+            <svg className="w-[26px] h-[26px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10h18M16 14h2" />
+            </svg>
+          </div>
+          <h1 className="display text-2xl mb-2">Your Recipe Box</h1>
+          <p className="text-ink-3 text-[15px] max-w-[380px] mx-auto mb-[22px] leading-relaxed">
+            Connect your wallet to see recipes you&apos;ve unlocked. Full access, forever.
+          </p>
+          <ConnectButton />
         </div>
-        <h1 className="text-2xl font-bold text-gray-100 mb-3">
-          Your Recipe Box
-        </h1>
-        <p className="text-gray-400 mb-6">
-          Connect your wallet to see recipes you have unlocked.
-        </p>
-        <ConnectButton />
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-100 mb-2">
-          Your Recipe Box
-        </h1>
-        <p className="text-sm text-gray-500">
-          Recipes you have unlocked. Full access, forever.
-        </p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="mb-7">
+        <h1 className="display text-[clamp(34px,5vw,48px)] mb-1.5">Your Recipe Box</h1>
+        <p className="text-ink-3 text-[17px]">Everything you&apos;ve unlocked, in one place.</p>
       </div>
 
       {loading ? (
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="mb-4 break-inside-avoid bg-gray-900 rounded-xl overflow-hidden border border-gray-800/50 animate-pulse"
+              className="press-card overflow-hidden animate-pulse"
             >
-              <div
-                className="bg-gray-800"
-                style={{ height: `${180 + (i % 3) * 60}px` }}
-              />
+              <div className="bg-paper-2" style={{ height: `${180 + (i % 3) * 60}px` }} />
               <div className="p-4 space-y-3">
-                <div className="h-3 bg-gray-800 rounded w-1/3" />
-                <div className="h-4 bg-gray-800 rounded w-3/4" />
-                <div className="h-3 bg-gray-800 rounded w-full" />
+                <div className="h-3 bg-paper-2 rounded-[3px] w-1/3" />
+                <div className="h-4 bg-paper-2 rounded-[3px] w-3/4" />
+                <div className="h-3 bg-paper-2 rounded-[3px] w-full" />
               </div>
             </div>
           ))}
         </div>
       ) : recipes.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 text-lg mb-2">No recipes yet.</p>
-          <p className="text-gray-600 text-sm">
-            Browse recipes and unlock your first one to start your collection.
+        <div className="press-card p-[60px_30px] text-center">
+          <div className="w-14 h-14 mx-auto mb-[18px] rounded-[4px] bg-accent/10 grid place-items-center text-accent">
+            <svg className="w-[26px] h-[26px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 017-2.5" />
+            </svg>
+          </div>
+          <h3 className="display text-2xl mb-2">No unlocked recipes yet</h3>
+          <p className="text-ink-3 text-[15px] max-w-[380px] mx-auto mb-[22px] leading-relaxed">
+            Unlock a recipe for a few cents and it&apos;ll live here forever.
           </p>
+          <Link href="/" className="btn-ink inline-flex items-center gap-2 px-5 py-2.5 text-sm">
+            Browse recipes
+            <svg className="w-[15px] h-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </Link>
         </div>
       ) : (
         <MasonryGrid>

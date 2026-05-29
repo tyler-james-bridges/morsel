@@ -34,14 +34,15 @@ export default function CreatorRedirectPage() {
   if (notFound) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-500 text-lg">Creator not found.</p>
+        <h1 className="display text-[40px] mb-2">Not found</h1>
+        <p className="text-ink-3">That creator doesn&apos;t seem to exist.</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-      <p className="text-gray-500 text-lg">Redirecting...</p>
+      <p className="text-ink-3 text-lg">Redirecting...</p>
     </div>
   );
 }

@@ -15,20 +15,20 @@ const TABS: { key: Tab; label: string }[] = [
 
 export default function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
   return (
-    <div className="flex gap-1 border-b border-gray-800">
+    <div className="flex gap-1 border-b border-ink/15">
       {TABS.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => onTabChange(key)}
-          className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+          className={`px-1 py-3 text-[15px] font-medium transition-colors relative mr-[22px] ${
             activeTab === key
-              ? "text-amber-500"
-              : "text-gray-400 hover:text-gray-200"
+              ? "text-ink font-semibold"
+              : "text-ink-3 hover:text-ink-2"
           }`}
         >
           {label}
           {activeTab === key && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
+            <span className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-accent" />
           )}
         </button>
       ))}
