@@ -19,6 +19,12 @@ vi.mock("@/lib/db", () => {
   };
 });
 
+vi.mock("@/lib/money", () => ({
+  getPriceUsdcAtomic: vi.fn().mockReturnValue(500000),
+  formatRecipePrice: vi.fn().mockReturnValue("$0.50"),
+  formatUsdcAtomicAsUsd: vi.fn().mockReturnValue("$0.00"),
+}));
+
 vi.mock("@/lib/tool-queries", () => ({
   searchRecipes: vi.fn().mockResolvedValue([
     {

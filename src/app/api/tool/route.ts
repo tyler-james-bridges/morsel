@@ -7,15 +7,9 @@ import {
   getTopCreators,
   getCreatorByAddress,
 } from "@/lib/tool-queries";
-import { shouldGateRecipeFull } from "@/lib/tool-gates";
-import { recipes, unlocks } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { recipes } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 import { getPriceUsdcAtomic } from "@/lib/money";
-import { getAddress, isAddress, verifyMessage, type Hex } from "viem";
-import {
-  buildRecipeAccessMessage,
-  WALLET_AUTH_WINDOW_MS,
-} from "@/lib/wallet-auth";
 
 type Action = "search" | "feed" | "recipe" | "recipe_full" | "creators" | "creator";
 
@@ -35,40 +29,6 @@ interface ToolInput {
 const VALID_ACTIONS: Action[] = [
   "search", "feed", "recipe", "recipe_full", "creators", "creator",
 ];
-
-function getFullRecipeContent(recipe: {
-  ingredients: string;
-  steps: string;
-  notes: string | null;
-}) {
-  return {
-    ingredients: JSON.parse(recipe.ingredients),
-    steps: JSON.parse(recipe.steps),
-    notes: recipe.notes,
-  };
-}
-
-async function getAuthenticatedBuyerAddress(req: NextRequest, recipeId: string) {
-  const address = req.headers.get("x-wallet-address");
-  const signature = req.headers.get("x-wallet-signature");
-  const timestamp = req.headers.get("x-wallet-timestamp");
-
-  if (!address || !signature || !timestamp || !isAddress(address)) return null;
-
-  const issuedAt = Number(timestamp);
-  if (!Number.isFinite(issuedAt)) return null;
-  if (Math.abs(Date.now() - issuedAt) > WALLET_AUTH_WINDOW_MS) return null;
-
-  const checksumAddress = getAddress(address);
-  const message = buildRecipeAccessMessage(recipeId, checksumAddress, timestamp);
-  const valid = await verifyMessage({
-    address: checksumAddress,
-    message,
-    signature: signature as Hex,
-  }).catch(() => false);
-
-  return valid ? checksumAddress.toLowerCase() : null;
-}
 
 function validateInput(body: unknown): { ok: true; input: ToolInput } | { ok: false; error: string } {
   if (!body || typeof body !== "object") {
@@ -109,7 +69,7 @@ function validateInput(body: unknown): { ok: true; input: ToolInput } | { ok: fa
   };
 }
 
-async function handleAction(input: ToolInput, req: NextRequest) {
+async function handleAction(input: ToolInput) {
   const db = await getDb();
 
   switch (input.action) {
@@ -163,41 +123,19 @@ async function handleAction(input: ToolInput, req: NextRequest) {
       const recipeData = recipeRows[0];
 
       if (recipeData.isFree === 1) {
-        return { recipe: getFullRecipeContent(recipeData) };
-      }
-
-      // Check for existing unlock via wallet auth headers
-      const authenticatedBuyerAddress = await getAuthenticatedBuyerAddress(
-        req,
-        input.recipeId,
-      );
-      if (authenticatedBuyerAddress) {
-        const existingUnlock = await db
-          .select({ id: unlocks.id })
-          .from(unlocks)
-          .where(
-            and(
-              eq(unlocks.recipeId, input.recipeId),
-              eq(unlocks.buyerAddress, authenticatedBuyerAddress),
-            ),
-          )
-          .limit(1);
-
-        if (existingUnlock[0]) {
-          return { recipe: getFullRecipeContent(recipeData) };
-        }
-      }
-
-      // Paid recipe without valid unlock - indicate payment required
-      const gateCheck = shouldGateRecipeFull(recipeData);
-      if (gateCheck.isGated) {
-        const priceUsdc = getPriceUsdcAtomic(recipeData) / 1_000_000;
         return {
-          error: `Payment required. Price: ${priceUsdc} USDC on Base. Use the x402-gated endpoint GET /api/recipes/${input.recipeId}/full for direct payment flow.`,
+          recipe: {
+            ingredients: JSON.parse(recipeData.ingredients),
+            steps: JSON.parse(recipeData.steps),
+            notes: recipeData.notes,
+          },
         };
       }
 
-      return { recipe: getFullRecipeContent(recipeData) };
+      const priceUsdc = getPriceUsdcAtomic(recipeData) / 1_000_000;
+      return {
+        error: `Payment required. Price: ${priceUsdc} USDC on Base. Use GET /api/recipes/${input.recipeId}/full for x402 payment flow.`,
+      };
     }
 
     case "creators": {
@@ -230,7 +168,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const result = await handleAction(validation.input, req);
+    const result = await handleAction(validation.input);
 
     if ("error" in result && result.error) {
       const status = result.error.startsWith("Payment required") ? 402 : 400;

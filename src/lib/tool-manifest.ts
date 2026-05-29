@@ -1,10 +1,12 @@
-import { defineManifest } from "@opensea/tool-sdk"
+import { defineManifest, x402UsdcPricing } from "@opensea/tool-sdk"
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://morsel-eight.vercel.app"
 
 export const morselManifest = defineManifest({
-  type: "https://eips.ethereum.org/EIPS/eip-8257#tool-manifest-v1",
+  type: "https://ercs.ethereum.org/ERCS/erc-8257#tool-manifest-v1",
   name: "morsel",
   description: "Recipe marketplace with micropayments. Search recipes, browse creators, and unlock full recipe content (ingredients, steps, notes) via x402 USDC payments on Base.",
-  endpoint: process.env.NEXT_PUBLIC_APP_URL || "https://morsel-eight.vercel.app",
+  endpoint: `${BASE_URL}/api/tool`,
   inputs: {
     type: "object",
     properties: {
@@ -37,5 +39,10 @@ export const morselManifest = defineManifest({
     }
   },
   creatorAddress: "0xa102a2cb8aac6c7d2c477412ebb7d41d0ce53495",
-  tags: ["recipes", "food", "micropayments", "x402", "base"]
+  pricing: x402UsdcPricing({
+    amountUsdc: "0.50",
+    recipient: "0xa102a2cb8aac6c7d2c477412ebb7d41d0ce53495",
+    network: "base",
+  }),
+  tags: ["recipes", "food", "micropayments", "x402", "base"],
 })
