@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   recipe: null as Record<string, unknown> | null,
   existingUnlock: null as { id: string } | null,
   insertedUnlocks: [] as Record<string, unknown>[],
+  insertError: null as Error | null,
   updateCount: 0,
   verifyMessage: false,
   settlement: {
@@ -35,6 +36,7 @@ vi.mock("@/lib/db", () => {
     })),
     insert: vi.fn(() => ({
       values: vi.fn(async (value: Record<string, unknown>) => {
+        if (state.insertError) throw state.insertError;
         state.insertedUnlocks.push(value);
       }),
     })),
@@ -114,6 +116,7 @@ beforeEach(() => {
   state.recipe = makeRecipe();
   state.existingUnlock = null;
   state.insertedUnlocks = [];
+  state.insertError = null;
   state.updateCount = 0;
   state.verifyMessage = false;
   mocks.withX402.mockReset();
@@ -195,5 +198,26 @@ describe("GET /api/recipes/[id]/full", () => {
       }),
     ]);
     expect(state.updateCount).toBe(1);
+  });
+
+  it("still returns paid content if unlock recording fails", async () => {
+    state.insertError = new Error("database unavailable");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      const response = await callRoute({ "x-payment": "valid" });
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.steps).toEqual(["mix"]);
+      expect(state.insertedUnlocks).toHaveLength(0);
+      expect(state.updateCount).toBe(0);
+      expect(errorSpy).toHaveBeenCalledWith(
+        "Failed to record x402 unlock",
+        expect.objectContaining({ recipeId: "recipe-1" }),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });

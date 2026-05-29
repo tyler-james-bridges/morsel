@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { base } from "wagmi/chains";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { buildCreatorPublishMessage } from "@/lib/wallet-auth";
+import { createCreatorPublishHeaders } from "@/lib/wallet-auth";
 
 const CUISINES = [
   "italian", "mexican", "japanese", "indian", "thai",
@@ -29,6 +29,7 @@ export default function PublishPage() {
   const { data: walletClient } = useWalletClient();
 
   const [submitting, setSubmitting] = useState(false);
+  const [switchingNetwork, setSwitchingNetwork] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -69,23 +70,24 @@ export default function PublishPage() {
       }
 
       if (chainId !== base.id) {
-        await switchChainAsync({ chainId: base.id });
+        setSwitchingNetwork(true);
+        try {
+          await switchChainAsync({ chainId: base.id });
+        } catch {
+          throw new Error("Switch to Base to publish this recipe.");
+        }
+        return;
       }
 
-      const timestamp = Date.now().toString();
-      const message = buildCreatorPublishMessage(address, timestamp);
-      const signature = await walletClient.signMessage({
-        account: address,
-        message,
-      });
+      const authHeaders = await createCreatorPublishHeaders(address, (params) =>
+        walletClient.signMessage(params),
+      );
 
       const res = await fetch("/api/recipes/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-wallet-address": address,
-          "x-wallet-signature": signature,
-          "x-wallet-timestamp": timestamp,
+          ...authHeaders,
         },
         body: JSON.stringify({
           title,
@@ -119,6 +121,7 @@ export default function PublishPage() {
       setSubmitError(err instanceof Error ? err.message : "Unable to publish recipe");
     } finally {
       setSubmitting(false);
+      setSwitchingNetwork(false);
     }
   }
 
@@ -483,13 +486,15 @@ export default function PublishPage() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || switchingNetwork}
           className="w-full py-3 rounded-lg bg-amber-500 text-gray-950 font-semibold hover:bg-amber-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting
+          {switchingNetwork
+            ? "Switching..."
+            : submitting
             ? "Publishing..."
             : isConnected && chainId !== base.id
-              ? "Switch to Base and Publish"
+              ? "Switch to Base"
               : "Publish Recipe"}
         </button>
       </form>

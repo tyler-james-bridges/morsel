@@ -78,14 +78,8 @@ export default function RecipeArticlePage() {
             setLocked(false);
           }
         } else {
-          const fullRes = await fetch(`/api/recipes/${data.id}/full`);
           if (!cancelled) {
-            if (fullRes.ok) {
-              setFullContent(await fullRes.json());
-              setLocked(false);
-            } else {
-              setLocked(true);
-            }
+            setLocked(true);
           }
         }
       } catch {

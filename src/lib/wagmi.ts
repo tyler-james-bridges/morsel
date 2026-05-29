@@ -1,29 +1,36 @@
-import { connectorsForWallets } from "@rainbow-me/rainbowkit";
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import {
+  base as baseWallet,
+  injectedWallet,
   metaMaskWallet,
   rainbowWallet,
   walletConnectWallet,
-  coinbaseWallet,
-  injectedWallet,
 } from "@rainbow-me/rainbowkit/wallets";
-import { createConfig, http } from "wagmi";
+import { http } from "wagmi";
 import { base } from "wagmi/chains";
 
-// Get a real project ID from https://cloud.reown.com
-// MetaMask/injected wallets work without one, but WalletConnect needs it
-const projectId =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
-  "00000000000000000000000000000000";
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
 
-const connectors = connectorsForWallets(
-  [
+if (!walletConnectProjectId && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is required for production wallet connections. Create one at https://cloud.reown.com.",
+  );
+}
+
+export const config = getDefaultConfig({
+  appName: "Morsel",
+  projectId: walletConnectProjectId ?? "YOUR_PROJECT_ID",
+  chains: [base],
+  ssr: true,
+  wallets: [
     {
       groupName: "Recommended",
       wallets: [
-        metaMaskWallet,
-        injectedWallet,
-        coinbaseWallet,
         rainbowWallet,
+        metaMaskWallet,
+        baseWallet,
+        injectedWallet,
       ],
     },
     {
@@ -31,16 +38,9 @@ const connectors = connectorsForWallets(
       wallets: [walletConnectWallet],
     },
   ],
-  { appName: "Morsel", projectId }
-);
-
-export const config = createConfig({
-  connectors,
-  chains: [base],
   transports: {
-    [base.id]: http(),
+    [base.id]: http(baseRpcUrl),
   },
-  ssr: true,
 });
 
 declare module "wagmi" {

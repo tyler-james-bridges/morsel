@@ -154,9 +154,16 @@ export async function GET(
   const paymentResponse = response.headers.get("x-payment-response");
 
   if (response.ok && paymentResponse) {
-    const settlement = decodeXPaymentResponse(paymentResponse);
-    const buyerAddress = settlement.payer.toLowerCase();
-    await recordUnlockOnce(recipe, buyerAddress, settlement.transaction);
+    try {
+      const settlement = decodeXPaymentResponse(paymentResponse);
+      const buyerAddress = settlement.payer.toLowerCase();
+      await recordUnlockOnce(recipe, buyerAddress, settlement.transaction);
+    } catch (error) {
+      console.error("Failed to record x402 unlock", {
+        recipeId: recipe.id,
+        error,
+      });
+    }
   }
 
   return response;

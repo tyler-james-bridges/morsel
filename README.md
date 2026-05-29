@@ -1,4 +1,12 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Morsel is a Next.js app for publishing and unlocking paid recipes with wallet-based auth and x402 payments on Base.
+
+## Environment
+
+Create a local `.env.local` from `.env.example`.
+
+`NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is required for production WalletConnect/Rainbow mobile wallet flows. Create one at [Reown Cloud](https://cloud.reown.com).
+
+`NEXT_PUBLIC_BASE_RPC_URL` is optional locally, but production should use a dedicated browser-safe Base RPC URL instead of public defaults.
 
 ## Getting Started
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { base } from "wagmi/chains";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { buildRecipeAccessMessage } from "@/lib/wallet-auth";
+import { createRecipeAccessHeaders } from "@/lib/wallet-auth";
 
 interface PaywallOverlayProps {
   price: string;
@@ -39,18 +39,9 @@ export default function PaywallOverlay({
   async function createWalletAuthHeaders() {
     if (!address || !walletClient) return null;
 
-    const timestamp = Date.now().toString();
-    const message = buildRecipeAccessMessage(recipeId, address, timestamp);
-    const signature = await walletClient.signMessage({
-      account: address,
-      message,
-    });
-
-    return {
-      "x-wallet-address": address,
-      "x-wallet-signature": signature,
-      "x-wallet-timestamp": timestamp,
-    };
+    return createRecipeAccessHeaders(recipeId, address, (params) =>
+      walletClient.signMessage(params),
+    );
   }
 
   async function handleUnlock() {
@@ -105,21 +96,25 @@ export default function PaywallOverlay({
         throw new Error("No payment requirements in 402 response");
       }
 
-      const paymentRequirements = body.accepts;
+      const paymentRequirements = Array.isArray(body.accepts)
+        ? body.accepts
+        : [body.accepts];
 
       // Step 3: Create payment header using x402 client
-      const { createPaymentHeader } = await import("x402/client");
+      const { createPaymentHeader, selectPaymentRequirements } = await import(
+        "x402/client"
+      );
 
-      const requirement = Array.isArray(paymentRequirements)
-        ? paymentRequirements[0]
-        : paymentRequirements;
+      const requirement = selectPaymentRequirements(
+        paymentRequirements,
+        "base",
+        "exact",
+      );
 
       const x402Version = body.x402Version || 1;
 
       const paymentHeader = await createPaymentHeader(
-        // wagmi walletClient is compatible at runtime; cast for x402 types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        walletClient as any,
+        walletClient as unknown as Parameters<typeof createPaymentHeader>[0],
         x402Version,
         requirement,
       );
