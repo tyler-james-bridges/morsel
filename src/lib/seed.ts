@@ -2,6 +2,7 @@ import db from "./db";
 import { creators, recipes } from "./schema";
 import { createHash } from "crypto";
 import { usdToUsdcAtomic } from "./money";
+import { eq, notInArray } from "drizzle-orm";
 
 // Deterministic ID from title so IDs stay consistent across cold starts
 function stableId(title: string): string {
@@ -168,7 +169,21 @@ export async function seedDatabase(options: { freeOnly?: boolean } = {}) {
   // Check if already seeded
   const existing = await db.select().from(creators);
   if (existing.length > 0) {
-    return { message: "Database already seeded", count: existing.length };
+    // Ensure isFree flags are correct on existing data
+    for (const recipe of SAMPLE_RECIPES) {
+      const id = stableId(recipe.title);
+      await db
+        .update(recipes)
+        .set({ isFree: recipe.isFree ?? 0 })
+        .where(eq(recipes.id, id))
+        .catch(() => {});
+    }
+    // Clean up stale creators/recipes from old seeds
+    const validIds = SAMPLE_RECIPES.map((r) => stableId(r.title));
+    const validAddresses = SAMPLE_CREATORS.map((c) => c.address);
+    await db.delete(recipes).where(notInArray(recipes.id, validIds)).catch(() => {});
+    await db.delete(creators).where(notInArray(creators.address, validAddresses)).catch(() => {});
+    return { message: "Database already seeded (migrated)", count: existing.length };
   }
 
   // Insert creators
