@@ -165,7 +165,7 @@ const SAMPLE_RECIPES = [
   },
 ];
 
-export async function seedDatabase(options: { freeOnly?: boolean } = {}) {
+export async function seedDatabase() {
   // Check if already seeded
   const existing = await db.select().from(creators);
   if (existing.length > 0) {
@@ -197,7 +197,7 @@ export async function seedDatabase(options: { freeOnly?: boolean } = {}) {
       id: stableId(recipe.title),
       ...recipe,
       priceUsdcAtomic: usdToUsdcAtomic(recipe.price),
-      isFree: options.freeOnly ? 1 : (recipe.isFree ?? 0),
+      isFree: recipe.isFree ?? 0,
     });
   }
 

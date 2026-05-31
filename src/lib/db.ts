@@ -142,11 +142,7 @@ export async function getDb() {
   if (!initialized) {
     await ensureTables();
     const { seedDatabase } = await import("./seed");
-    await seedDatabase({
-      // Keep placeholder demo payout addresses out of production by default.
-      freeOnly:
-        (isVercel || isRemoteDatabase) && process.env.SEED_DEMO_PAYMENTS !== "1",
-    });
+    await seedDatabase();
     initialized = true;
   }
   return db;
