@@ -84,7 +84,6 @@ const SAMPLE_RECIPES = [
     description: "Crunchy outside, soft and chewy inside. Brown butter is the move. Makes 8 big cookies that hit different.",
     slug: "perfect-chocolate-chip-cookies",
     introContent: "This is the cookie recipe I keep coming back to when I want to impress someone but only have thirty minutes. Eight big cookies, brown butter, finishing salt. No mixer required, no overnight rest. Just a bowl, a pan, and the smell that makes everyone in the house wander into the kitchen.",
-    isFree: 1,
     imageUrl: "/images/recipes/chocolate-chip-cookies.png",
     price: 0.25,
     cuisine: "american",
@@ -174,7 +173,7 @@ export async function seedDatabase() {
       const id = stableId(recipe.title);
       await db
         .update(recipes)
-        .set({ isFree: recipe.isFree ?? 0 })
+        .set({ isFree: 0 })
         .where(eq(recipes.id, id))
         .catch(() => {});
     }
@@ -197,7 +196,7 @@ export async function seedDatabase() {
       id: stableId(recipe.title),
       ...recipe,
       priceUsdcAtomic: usdToUsdcAtomic(recipe.price),
-      isFree: recipe.isFree ?? 0,
+      isFree: 0,
     });
   }
 
