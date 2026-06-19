@@ -16,5 +16,5 @@ export const PAYOUT_ADDRESS =
 // supports testnet, so real Base-mainnet USDC payments fail verification
 // with "unexpected_error". payai's facilitator supports the `exact` scheme
 // on Base mainnet (network: "base"), matching how x402-cannastack settles.
-export const X402_FACILITATOR_URL =
-  process.env.X402_FACILITATOR_BASE || "https://facilitator.payai.network";
+export const X402_FACILITATOR_URL = (process.env.X402_FACILITATOR_BASE ||
+  "https://facilitator.payai.network") as `${string}://${string}`;
