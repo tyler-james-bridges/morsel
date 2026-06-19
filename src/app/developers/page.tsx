@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const ENDPOINT = "https://morsel-eight.vercel.app/api/tool";
+const ENDPOINT = "https://morsel.0x402.sh/api/tool";
 
 const ACTIONS = [
   { name: "search", price: "free", desc: "Search recipes by query, cuisine, dietary tags. Returns previews." },

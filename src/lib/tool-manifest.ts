@@ -1,6 +1,6 @@
 import { defineManifest, x402UsdcPricing } from "@opensea/tool-sdk"
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://morsel-eight.vercel.app"
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://morsel.0x402.sh"
 
 export const morselManifest = defineManifest({
   type: "https://ercs.ethereum.org/ERCS/erc-8257#tool-manifest-v1",

@@ -24,7 +24,7 @@ const manifest = {
   name: "morsel",
   description:
     "Recipe marketplace with micropayments. Search recipes, browse creators, and unlock full recipe content (ingredients, steps, notes) via x402 USDC payments on Base.",
-  endpoint: "https://morsel-eight.vercel.app",
+  endpoint: "https://morsel.0x402.sh",
   inputs: {
     type: "object" as const,
     properties: {
@@ -67,7 +67,7 @@ const manifest = {
   tags: ["recipes", "food", "micropayments", "x402", "base"],
 }
 
-const METADATA_URI = "https://morsel-eight.vercel.app/.well-known/ai-tool/morsel.json"
+const METADATA_URI = "https://morsel.0x402.sh/.well-known/ai-tool/morsel.json"
 
 async function main() {
   const args = process.argv.slice(2)
