@@ -1,6 +1,6 @@
 import { defineManifest, x402UsdcPricing } from "@opensea/tool-sdk"
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://morsel-eight.vercel.app"
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://morsel.0x402.sh"
 
 export const morselManifest = defineManifest({
   type: "https://ercs.ethereum.org/ERCS/erc-8257#tool-manifest-v1",
@@ -41,7 +41,8 @@ export const morselManifest = defineManifest({
   creatorAddress: "0xa102a2cb8aac6c7d2c477412ebb7d41d0ce53495",
   pricing: x402UsdcPricing({
     amountUsdc: "0.50",
-    recipient: "0xa102a2cb8aac6c7d2c477412ebb7d41d0ce53495",
+    // ack-onchain.base.eth — reputable payout wallet (see src/lib/payment.ts)
+    recipient: "0x668aDd9213985E7Fd613Aec87767C892f4b9dF1c",
     network: "base",
   }),
   tags: ["recipes", "food", "micropayments", "x402", "base"],

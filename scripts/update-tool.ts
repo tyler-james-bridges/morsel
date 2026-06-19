@@ -3,7 +3,7 @@ import { createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { base } from "viem/chains"
 
-const METADATA_URI = "https://morsel-eight.vercel.app/.well-known/ai-tool/morsel.json"
+const METADATA_URI = "https://morsel.0x402.sh/.well-known/ai-tool/morsel.json"
 const TOOL_ID = 28n
 
 async function main() {
