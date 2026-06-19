@@ -3,6 +3,7 @@ import { decodeXPaymentResponse, getDefaultAsset } from "x402/shared";
 import { withX402 } from "x402-next";
 import db, { getDb } from "@/lib/db";
 import { getPriceUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
+import { PAYOUT_ADDRESS } from "@/lib/payment";
 import { recipes, unlocks } from "@/lib/schema";
 import {
   buildRecipeAccessMessage,
@@ -137,7 +138,9 @@ export async function GET(
 
   const wrapped = withX402(
     handler,
-    recipe.creatorAddress as `0x${string}`,
+    // Payments settle to the reputable PAYOUT_ADDRESS (ack-onchain.base.eth),
+    // decoupled from the creator's identity address.
+    PAYOUT_ADDRESS,
     {
       price: {
         amount: getPriceUsdcAtomic(recipe).toString(),
