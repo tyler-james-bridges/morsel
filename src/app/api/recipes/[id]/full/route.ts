@@ -3,7 +3,7 @@ import { decodeXPaymentResponse, getDefaultAsset } from "x402/shared";
 import { withX402 } from "x402-next";
 import db, { getDb } from "@/lib/db";
 import { getPriceUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
-import { PAYOUT_ADDRESS } from "@/lib/payment";
+import { PAYOUT_ADDRESS, X402_FACILITATOR_URL } from "@/lib/payment";
 import { recipes, unlocks } from "@/lib/schema";
 import {
   buildRecipeAccessMessage,
@@ -151,6 +151,9 @@ export async function GET(
         description: `Unlock "${recipe.title}"`,
       },
     },
+    // Base-mainnet-capable facilitator (payai). Without this, x402-next
+    // defaults to the testnet-only facilitator and verification fails.
+    { url: X402_FACILITATOR_URL },
   );
 
   const response = await wrapped(req);
