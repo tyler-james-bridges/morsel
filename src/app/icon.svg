@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="32%" cy="30%" r="105%">
+      <stop offset="0" stop-color="#e0764b"></stop>
+      <stop offset="0.55" stop-color="#c9542f"></stop>
+      <stop offset="1" stop-color="#ab4322"></stop>
+    </radialGradient>
+    <mask id="bite">
+      <rect width="512" height="512" fill="black"></rect>
+      <circle cx="256" cy="262" r="130.5" fill="white"></circle>
+      <circle cx="353" cy="165" r="63" fill="black"></circle>
+    </mask>
+  </defs>
+  <rect width="512" height="512" rx="115.2" fill="url(#bg)"></rect>
+  <rect width="512" height="512" fill="#f5ecdf" mask="url(#bite)"></rect>
+</svg>
