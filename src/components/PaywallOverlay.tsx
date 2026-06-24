@@ -38,12 +38,14 @@ export default function PaywallOverlay({
   const { openConnectModal } = useConnectModal();
   const { data: walletClient } = useWalletClient();
   const [unlocking, setUnlocking] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [switchingNetwork, setSwitchingNetwork] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState(-1);
 
   const wrongNetwork = isConnected && chainId !== base.id;
   const busy = stage >= 0;
+  const actionDisabled = unlocking || restoring || switchingNetwork;
 
   async function createWalletAuthHeaders() {
     if (!address || !walletClient) return null;
@@ -132,14 +134,13 @@ export default function PaywallOverlay({
 
       // Step 4: Re-fetch with payment header.
       // Include wallet-auth headers so the server records the unlock under the
-      // connected wallet address (what we check on refresh), not only the
-      // on-chain payer address (which can differ for smart/delegated wallets).
+      // connected wallet address (what restore checks use), not only the
+      // onchain payer address (which can differ for smart/delegated wallets).
       setStage(2);
-      const paidAuthHeaders = await createWalletAuthHeaders();
       const paidRes = await fetch(`/api/recipes/${recipeId}/full`, {
         headers: {
           "x-payment": paymentHeader,
-          ...(paidAuthHeaders ?? {}),
+          ...authHeaders,
         },
       });
 
@@ -158,6 +159,38 @@ export default function PaywallOverlay({
       setStage(-1);
     } finally {
       setUnlocking(false);
+    }
+  }
+
+  async function handleRestoreAccess() {
+    if (!isConnected || !walletClient || !address) {
+      openConnectModal?.();
+      return;
+    }
+
+    setRestoring(true);
+    setError(null);
+
+    try {
+      const authHeaders = await createWalletAuthHeaders();
+      if (!authHeaders) {
+        throw new Error("Wallet signature is required to restore access");
+      }
+
+      const res = await fetch(`/api/recipes/${recipeId}/full`, {
+        headers: { Accept: "application/json", ...authHeaders },
+      });
+
+      if (!res.ok) {
+        throw new Error("No previous unlock found for this wallet.");
+      }
+
+      onUnlocked(await res.json());
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not restore access";
+      setError(msg);
+    } finally {
+      setRestoring(false);
     }
   }
 
@@ -226,6 +259,9 @@ export default function PaywallOverlay({
               <p className="text-[13.5px] text-ink-3 mb-5">
                 Supports <span className="text-ink-2">{creatorName}</span> directly
               </p>
+              <p className="text-[12.5px] text-ink-4 mb-4">
+                Pay once. This browser will reopen the recipe automatically.
+              </p>
 
               {error && (
                 <p className="text-sm text-red-700 mb-4 bg-red-100 rounded-[4px] px-3 py-2 border border-red-200">
@@ -235,7 +271,7 @@ export default function PaywallOverlay({
 
               <button
                 onClick={handleUnlock}
-                disabled={unlocking || switchingNetwork}
+                disabled={actionDisabled}
                 className="btn-ink w-full py-3.5 text-[15px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {switchingNetwork
@@ -246,7 +282,19 @@ export default function PaywallOverlay({
                     ? "Connect wallet to unlock"
                     : wrongNetwork
                       ? "Switch to Base"
-                      : <>Pay {price} <span className="font-mono font-medium">USDC</span></>}
+                      : <>Pay {price} <span className="font-mono font-medium">USDC</span> once</>}
+              </button>
+
+              <button
+                onClick={handleRestoreAccess}
+                disabled={actionDisabled}
+                className="mt-3 w-full py-2.5 text-[13.5px] font-semibold text-ink-3 hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {restoring
+                  ? "Checking saved unlock..."
+                  : !isConnected
+                    ? "Already paid? Connect to restore"
+                    : "Already paid? Restore access"}
               </button>
 
               <div className="flex items-center justify-center gap-4 mt-4 text-ink-4 text-[11.5px]">

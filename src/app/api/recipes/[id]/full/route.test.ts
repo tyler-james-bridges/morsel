@@ -84,6 +84,7 @@ vi.mock("viem", async () => {
 });
 
 const { GET } = await import("./route");
+const { createRecipeAccessCookie } = await import("@/lib/recipe-access-cookie");
 
 function makeRecipe(overrides: Record<string, unknown> = {}) {
   return {
@@ -113,6 +114,7 @@ async function callRoute(headers?: HeadersInit) {
 }
 
 beforeEach(() => {
+  process.env.MORSEL_ACCESS_TOKEN_SECRET = "test-secret";
   state.recipe = makeRecipe();
   state.existingUnlock = null;
   state.insertedUnlocks = [];
@@ -165,7 +167,25 @@ describe("GET /api/recipes/[id]/full", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.withX402).not.toHaveBeenCalled();
+    expect(response.headers.get("set-cookie")).toContain("morsel_access_");
     expect(state.insertedUnlocks).toHaveLength(0);
+  });
+
+  it("returns existing unlocks from access cookie without wallet proof", async () => {
+    state.existingUnlock = { id: "unlock-1" };
+    const cookie = createRecipeAccessCookie(
+      "recipe-1",
+      "0x0000000000000000000000000000000000000001",
+    );
+
+    const response = await callRoute({ Cookie: cookie?.split(";")[0] ?? "" });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ingredients).toEqual(["salt"]);
+    expect(mocks.verifyMessage).not.toHaveBeenCalled();
+    expect(mocks.withX402).not.toHaveBeenCalled();
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
   });
 
   it("does not bypass payment for invalid wallet proof", async () => {
@@ -198,6 +218,7 @@ describe("GET /api/recipes/[id]/full", () => {
       }),
     ]);
     expect(state.updateCount).toBe(1);
+    expect(response.headers.get("set-cookie")).toContain("morsel_access_");
   });
 
   it("still returns paid content if unlock recording fails", async () => {

@@ -4,6 +4,11 @@ import { withX402 } from "x402-next";
 import db, { getDb } from "@/lib/db";
 import { getPriceUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
 import { PAYOUT_ADDRESS, X402_FACILITATOR_URL } from "@/lib/payment";
+import {
+  createRecipeAccessCookie,
+  getRecipeAccessCookieName,
+  readRecipeAccessCookie,
+} from "@/lib/recipe-access-cookie";
 import { recipes, unlocks } from "@/lib/schema";
 import {
   buildRecipeAccessMessage,
@@ -19,6 +24,28 @@ function getFullRecipeContent(recipe: typeof recipes.$inferSelect) {
     steps: JSON.parse(recipe.steps),
     notes: recipe.notes,
   };
+}
+
+function appendAccessCookie(
+  response: NextResponse,
+  recipeId: string,
+  buyerAddress: string,
+) {
+  const cookie = createRecipeAccessCookie(recipeId, buyerAddress);
+  if (cookie) response.headers.append("Set-Cookie", cookie);
+  return response;
+}
+
+async function hasRecordedUnlock(recipeId: string, buyerAddress: string) {
+  const existingUnlock = (
+    await db
+      .select({ id: unlocks.id })
+      .from(unlocks)
+      .where(and(eq(unlocks.recipeId, recipeId), eq(unlocks.buyerAddress, buyerAddress)))
+      .limit(1)
+  )[0];
+
+  return Boolean(existingUnlock);
 }
 
 async function getAuthenticatedBuyerAddress(req: NextRequest, recipeId: string) {
@@ -119,23 +146,26 @@ export async function GET(
     return NextResponse.json(getFullRecipeContent(recipe));
   }
 
+  const cookieBuyerAddress = readRecipeAccessCookie(
+    id,
+    req.cookies.get(getRecipeAccessCookieName(id))?.value,
+  );
+  if (cookieBuyerAddress && await hasRecordedUnlock(id, cookieBuyerAddress)) {
+    return appendAccessCookie(
+      NextResponse.json(getFullRecipeContent(recipe)),
+      id,
+      cookieBuyerAddress,
+    );
+  }
+
   const authenticatedBuyerAddress = await getAuthenticatedBuyerAddress(req, id);
   if (authenticatedBuyerAddress) {
-    const existingUnlock = (
-      await db
-        .select({ id: unlocks.id })
-        .from(unlocks)
-        .where(
-          and(
-            eq(unlocks.recipeId, id),
-            eq(unlocks.buyerAddress, authenticatedBuyerAddress),
-          ),
-        )
-        .limit(1)
-    )[0];
-
-    if (existingUnlock) {
-      return NextResponse.json(getFullRecipeContent(recipe));
+    if (await hasRecordedUnlock(id, authenticatedBuyerAddress)) {
+      return appendAccessCookie(
+        NextResponse.json(getFullRecipeContent(recipe)),
+        id,
+        authenticatedBuyerAddress,
+      );
     }
   }
 
@@ -173,10 +203,10 @@ export async function GET(
       const payerAddress = settlement.payer.toLowerCase();
 
       // Record the unlock under every address the buyer might present on a
-      // later request so the refresh check always matches:
+      // later request so restore checks can match:
       //  - the connected wallet (authenticatedBuyerAddress), which is what the
-      //    client sends via wallet-auth headers on refresh
-      //  - the on-chain payer, which can differ for smart/delegated wallets
+      //    client can prove with a wallet-auth signature
+      //  - the onchain payer, which can differ for smart/delegated wallets
       const addressesToRecord = new Set<string>([payerAddress]);
       if (authenticatedBuyerAddress) {
         addressesToRecord.add(authenticatedBuyerAddress);
@@ -193,6 +223,12 @@ export async function GET(
         );
         first = false;
       }
+
+      appendAccessCookie(
+        response,
+        recipe.id,
+        authenticatedBuyerAddress ?? payerAddress,
+      );
     } catch (error) {
       console.error("Failed to record x402 unlock", {
         recipeId: recipe.id,

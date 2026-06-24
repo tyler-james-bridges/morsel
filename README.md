@@ -8,6 +8,8 @@ Create a local `.env.local` from `.env.example`.
 
 `NEXT_PUBLIC_BASE_RPC_URL` is optional locally, but production should use a dedicated browser-safe Base RPC URL instead of public defaults.
 
+`MORSEL_ACCESS_TOKEN_SECRET` signs recipe access cookies after x402 settlement. If unset, the app falls back to `DATABASE_URL`.
+
 ## Getting Started
 
 First, run the development server:
