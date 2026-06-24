@@ -130,11 +130,16 @@ export default function PaywallOverlay({
         requirement,
       );
 
-      // Step 4: Re-fetch with payment header
+      // Step 4: Re-fetch with payment header.
+      // Include wallet-auth headers so the server records the unlock under the
+      // connected wallet address (what we check on refresh), not only the
+      // on-chain payer address (which can differ for smart/delegated wallets).
       setStage(2);
+      const paidAuthHeaders = await createWalletAuthHeaders();
       const paidRes = await fetch(`/api/recipes/${recipeId}/full`, {
         headers: {
           "x-payment": paymentHeader,
+          ...(paidAuthHeaders ?? {}),
         },
       });
 

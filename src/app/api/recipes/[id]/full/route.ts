@@ -52,6 +52,11 @@ async function recordUnlockOnce(
   recipe: typeof recipes.$inferSelect,
   buyerAddress: string,
   txHash: string,
+  // When false, the unlock row is still recorded (so this address can read the
+  // recipe later) but recipe.unlockCount is NOT incremented. Used when the same
+  // payment is recorded under multiple addresses (payer + connected wallet) to
+  // avoid double-counting a single purchase.
+  incrementCount = true,
 ) {
   const existingUnlock = (
     await db
@@ -81,10 +86,12 @@ async function recordUnlockOnce(
     throw error;
   }
 
-  await db
-    .update(recipes)
-    .set({ unlockCount: sql`${recipes.unlockCount} + 1` })
-    .where(eq(recipes.id, recipe.id));
+  if (incrementCount) {
+    await db
+      .update(recipes)
+      .set({ unlockCount: sql`${recipes.unlockCount} + 1` })
+      .where(eq(recipes.id, recipe.id));
+  }
 
   return true;
 }
@@ -163,8 +170,29 @@ export async function GET(
   if (response.ok && paymentResponse) {
     try {
       const settlement = decodeXPaymentResponse(paymentResponse);
-      const buyerAddress = settlement.payer.toLowerCase();
-      await recordUnlockOnce(recipe, buyerAddress, settlement.transaction);
+      const payerAddress = settlement.payer.toLowerCase();
+
+      // Record the unlock under every address the buyer might present on a
+      // later request so the refresh check always matches:
+      //  - the connected wallet (authenticatedBuyerAddress), which is what the
+      //    client sends via wallet-auth headers on refresh
+      //  - the on-chain payer, which can differ for smart/delegated wallets
+      const addressesToRecord = new Set<string>([payerAddress]);
+      if (authenticatedBuyerAddress) {
+        addressesToRecord.add(authenticatedBuyerAddress);
+      }
+
+      // Increment unlockCount only once per payment, on the first address.
+      let first = true;
+      for (const buyerAddress of addressesToRecord) {
+        await recordUnlockOnce(
+          recipe,
+          buyerAddress,
+          settlement.transaction,
+          first,
+        );
+        first = false;
+      }
     } catch (error) {
       console.error("Failed to record x402 unlock", {
         recipeId: recipe.id,
