@@ -66,13 +66,6 @@ vi.mock("x402-next", () => ({
   withX402: mocks.withX402,
 }));
 
-vi.mock("@coinbase/x402", () => ({
-  createFacilitatorConfig: vi.fn(() => ({
-    url: "https://api.cdp.coinbase.com/platform/v2/x402",
-    createAuthHeaders: vi.fn(),
-  })),
-}));
-
 vi.mock("x402/shared", () => ({
   decodeXPaymentResponse: mocks.decodeXPaymentResponse,
   getDefaultAsset: vi.fn(() => ({
@@ -120,8 +113,6 @@ async function callRoute(headers?: HeadersInit) {
 }
 
 beforeEach(() => {
-  process.env.CDP_API_KEY_ID = "test-key-id";
-  process.env.CDP_API_KEY_SECRET = "test-key-secret";
   state.recipe = makeRecipe();
   state.existingUnlock = null;
   state.insertedUnlocks = [];
