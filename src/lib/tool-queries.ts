@@ -140,9 +140,10 @@ export async function searchRecipes(db: Database, filters: {
 export async function getFeedRecipes(db: Database, params: {
   tab: "featured" | "latest" | "trending";
   cursor?: string;
+  afterId?: string;
   limit: number;
 }): Promise<{ recipes: RecipePreview[]; nextCursor: string | null }> {
-  const { tab, cursor, limit } = params;
+  const { tab, cursor, afterId, limit } = params;
 
   const baseSelect = {
     id: recipes.id,
@@ -177,7 +178,7 @@ export async function getFeedRecipes(db: Database, params: {
     const conditions = [];
     if (cursor) {
       conditions.push(
-        sql`(${recipes.unlockCount} < ${parseInt(cursor, 10)})`,
+        sql`(${recipes.unlockCount} < ${parseInt(cursor, 10)} OR (${recipes.unlockCount} = ${parseInt(cursor, 10)} AND ${recipes.id} > ${afterId || ""}))`,
       );
     }
 
