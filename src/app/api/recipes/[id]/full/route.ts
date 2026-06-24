@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeXPaymentResponse, getDefaultAsset } from "x402/shared";
 import { withX402 } from "x402-next";
+import { createFacilitatorConfig } from "@coinbase/x402";
+import type { FacilitatorConfig } from "x402/types";
 import db, { getDb } from "@/lib/db";
 import { getPriceUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
-import { PAYOUT_ADDRESS, X402_FACILITATOR_URL } from "@/lib/payment";
+import { PAYOUT_ADDRESS } from "@/lib/payment";
 import { recipes, unlocks } from "@/lib/schema";
 import {
   buildRecipeAccessMessage,
@@ -136,6 +138,34 @@ export async function GET(
     return NextResponse.json(getFullRecipeContent(recipe));
   };
 
+  // Base mainnet settlement requires a mainnet-capable facilitator.
+  // The x402-next default (x402.org/facilitator) is testnet-only and will
+  // fail mainnet settlement with "unexpected_error". Use Coinbase CDP's
+  // mainnet facilitator, which authenticates with CDP API keys.
+  const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+  const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+  // @coinbase/x402 returns its own FacilitatorConfig type (from @x402/core).
+  // It is structurally compatible with x402-next's expected config; cast to
+  // bridge the two package-internal type declarations.
+  const facilitatorConfig =
+    cdpApiKeyId && cdpApiKeySecret
+      ? (createFacilitatorConfig(
+          cdpApiKeyId,
+          cdpApiKeySecret,
+        ) as unknown as FacilitatorConfig)
+      : undefined;
+
+  if (!facilitatorConfig) {
+    console.error(
+      "Missing CDP API credentials (CDP_API_KEY_ID / CDP_API_KEY_SECRET). " +
+        "Base mainnet x402 settlement will fail.",
+    );
+    return NextResponse.json(
+      { error: "Payments are temporarily unavailable. Please try again later." },
+      { status: 503 },
+    );
+  }
+
   const wrapped = withX402(
     handler,
     // Payments settle to the reputable PAYOUT_ADDRESS (ack-onchain.base.eth),
@@ -151,9 +181,7 @@ export async function GET(
         description: `Unlock "${recipe.title}"`,
       },
     },
-    // Base-mainnet-capable facilitator (payai). Without this, x402-next
-    // defaults to the testnet-only facilitator and verification fails.
-    { url: X402_FACILITATOR_URL },
+    facilitatorConfig,
   );
 
   const response = await wrapped(req);
