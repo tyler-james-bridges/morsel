@@ -12,9 +12,14 @@ import { base } from "wagmi/chains";
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
 
+// A missing WalletConnect project id must NOT crash the production build.
+// This module is evaluated during static prerendering (e.g. /_not-found),
+// where throwing aborts the entire build. WalletConnect is one optional
+// connector; degrade gracefully and warn at runtime instead of hard-failing.
 if (!walletConnectProjectId && process.env.NODE_ENV === "production") {
-  throw new Error(
-    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is required for production wallet connections. Create one at https://cloud.reown.com.",
+  console.warn(
+    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set. WalletConnect will be " +
+      "unavailable. Set it for full wallet support: https://cloud.reown.com.",
   );
 }
 
