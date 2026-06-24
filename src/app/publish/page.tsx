@@ -471,7 +471,7 @@ export default function PublishPage() {
                 <img src={imageUrl} alt="Preview" className="w-full aspect-[16/9] object-cover" />
               ) : (
                 <div className="w-full aspect-[16/9] bg-paper-2 grid place-items-center text-ink-4 text-[13px] font-mono">
-                  // add photo URL
+                  Add photo URL
                 </div>
               )}
               <div className="p-4">

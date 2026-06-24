@@ -1,6 +1,13 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import {
+  bigint,
+  doublePrecision,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
-export const creators = sqliteTable("creators", {
+export const creators = pgTable("creators", {
   address: text("address").primaryKey(),
   name: text("name").notNull(),
   bio: text("bio").notNull().default(""),
@@ -8,12 +15,12 @@ export const creators = sqliteTable("creators", {
   slug: text("slug").notNull().unique(),
   bannerUrl: text("banner_url").notNull().default(""),
   socialLinks: text("social_links").notNull().default("{}"),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
-export const recipes = sqliteTable("recipes", {
+export const recipes = pgTable("recipes", {
   id: text("id").primaryKey(),
   creatorAddress: text("creator_address")
     .notNull()
@@ -21,8 +28,10 @@ export const recipes = sqliteTable("recipes", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url").notNull(),
-  price: real("price").notNull(), // Legacy USD amount (e.g. 0.50)
-  priceUsdcAtomic: integer("price_usdc_atomic").notNull().default(0),
+  price: doublePrecision("price").notNull(), // Legacy USD amount (e.g. 0.50)
+  priceUsdcAtomic: bigint("price_usdc_atomic", { mode: "number" })
+    .notNull()
+    .default(0),
   cuisine: text("cuisine").notNull(),
   mealType: text("meal_type").notNull(),
   dietaryTags: text("dietary_tags").notNull().default("[]"), // JSON array
@@ -33,43 +42,43 @@ export const recipes = sqliteTable("recipes", {
   slug: text("slug").notNull(),
   introContent: text("intro_content").notNull().default(""),
   isFree: integer("is_free").notNull().default(0),
-  publishedAt: integer("published_at", { mode: "timestamp" })
+  publishedAt: timestamp("published_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
   // Gated content
   ingredients: text("ingredients").notNull(), // JSON array
   steps: text("steps").notNull(), // JSON array
   notes: text("notes").default(""),
   unlockCount: integer("unlock_count").notNull().default(0),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
-export const unlocks = sqliteTable("unlocks", {
+export const unlocks = pgTable("unlocks", {
   id: text("id").primaryKey(),
   recipeId: text("recipe_id")
     .notNull()
     .references(() => recipes.id),
   buyerAddress: text("buyer_address").notNull(),
-  paidAmount: real("paid_amount").notNull(), // Legacy USD amount
-  paidAmountUsdcAtomic: integer("paid_amount_usdc_atomic")
+  paidAmount: doublePrecision("paid_amount").notNull(), // Legacy USD amount
+  paidAmountUsdcAtomic: bigint("paid_amount_usdc_atomic", { mode: "number" })
     .notNull()
     .default(0),
   txHash: text("tx_hash"),
-  unlockedAt: integer("unlocked_at", { mode: "timestamp" })
+  unlockedAt: timestamp("unlocked_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
-export const subscriptions = sqliteTable("subscriptions", {
+export const subscriptions = pgTable("subscriptions", {
   id: text("id").primaryKey(),
   creatorAddress: text("creator_address")
     .notNull()
     .references(() => creators.address),
   email: text("email"),
   walletAddress: text("wallet_address"),
-  subscribedAt: integer("subscribed_at", { mode: "timestamp" })
+  subscribedAt: timestamp("subscribed_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });

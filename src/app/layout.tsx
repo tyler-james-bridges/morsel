@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
 import "./globals.css";
@@ -47,6 +48,7 @@ export default function RootLayout({
           <Navbar />
           <main className="pt-16">{children}</main>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
