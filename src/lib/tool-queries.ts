@@ -140,9 +140,10 @@ export async function searchRecipes(db: Database, filters: {
 export async function getFeedRecipes(db: Database, params: {
   tab: "featured" | "latest" | "trending";
   cursor?: string;
+  afterId?: string;
   limit: number;
-}): Promise<{ recipes: RecipePreview[]; nextCursor: string | null }> {
-  const { tab, cursor, limit } = params;
+}): Promise<{ recipes: RecipePreview[]; nextCursor: string | null; nextAfterId: string | null }> {
+  const { tab, cursor, afterId, limit } = params;
 
   const baseSelect = {
     id: recipes.id,
@@ -176,9 +177,16 @@ export async function getFeedRecipes(db: Database, params: {
   if (tab === "featured" || tab === "trending") {
     const conditions = [];
     if (cursor) {
-      conditions.push(
-        sql`(${recipes.unlockCount} < ${parseInt(cursor, 10)})`,
-      );
+      const unlockVal = parseInt(cursor, 10);
+      if (afterId) {
+        conditions.push(
+          sql`(${recipes.unlockCount} < ${unlockVal} OR (${recipes.unlockCount} = ${unlockVal} AND ${recipes.id} > ${afterId}))`,
+        );
+      } else {
+        conditions.push(
+          sql`(${recipes.unlockCount} < ${unlockVal})`,
+        );
+      }
     }
 
     rows = await baseQuery()
@@ -205,6 +213,7 @@ export async function getFeedRecipes(db: Database, params: {
   const items = hasMore ? rows.slice(0, limit) : rows;
 
   let nextCursor: string | null = null;
+  let nextAfterId: string | null = null;
   if (hasMore && items.length > 0) {
     const last = items[items.length - 1];
     if (tab === "latest") {
@@ -213,6 +222,7 @@ export async function getFeedRecipes(db: Database, params: {
         : null;
     } else {
       nextCursor = `${last.unlockCount}`;
+      nextAfterId = last.id;
     }
   }
 
@@ -223,7 +233,7 @@ export async function getFeedRecipes(db: Database, params: {
     creatorName: row.creatorName || "Unknown Creator",
   }));
 
-  return { recipes: previews, nextCursor };
+  return { recipes: previews, nextCursor, nextAfterId };
 }
 
 export async function getRecipeById(db: Database, id: string): Promise<RecipeDetail | null> {

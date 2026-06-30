@@ -15,7 +15,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 */
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
 
   const links = [
     { href: "/", label: "Browse" },
