@@ -63,7 +63,7 @@ function buildSpec() {
           summary: "Unlock full recipe content",
           tags: ["Recipes", "x402"],
           "x-payment-info": {
-            price: { mode: "dynamic", currency: "USD", min: "0.01", max: "1000000.00" },
+            price: { mode: "dynamic", currency: "USD", min: "0.25", max: "0.75" },
             protocols: [{ x402: {} }],
           },
           parameters: [

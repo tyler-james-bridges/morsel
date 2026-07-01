@@ -1,6 +1,7 @@
 const USDC_ATOMIC_PER_DOLLAR = 1_000_000;
 const USDC_ATOMIC_PER_CENT = 10_000;
-const MAX_USD_CENTS = 100_000_000;
+export const SUPPORTED_RECIPE_PRICE_USDC_ATOMIC = [250_000, 500_000, 750_000] as const;
+export const SUPPORTED_RECIPE_PRICE_LABELS = ["$0.25", "$0.50", "$0.75"] as const;
 
 export function parseUsdInputToUsdcAtomic(value: unknown) {
   const normalized =
@@ -16,11 +17,14 @@ export function parseUsdInputToUsdcAtomic(value: unknown) {
   const wholeCents = Number(wholePart) * 100;
   const cents = wholeCents + Number(fractionalPart.padEnd(2, "0"));
 
-  if (!Number.isSafeInteger(cents) || cents < 1 || cents > MAX_USD_CENTS) {
+  if (!Number.isSafeInteger(cents)) {
     return null;
   }
 
-  return cents * USDC_ATOMIC_PER_CENT;
+  const atomic = cents * USDC_ATOMIC_PER_CENT;
+  return SUPPORTED_RECIPE_PRICE_USDC_ATOMIC.includes(
+    atomic as (typeof SUPPORTED_RECIPE_PRICE_USDC_ATOMIC)[number],
+  ) ? atomic : null;
 }
 
 export function usdToUsdcAtomic(value: number) {

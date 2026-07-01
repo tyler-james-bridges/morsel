@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { getDb } from "@/lib/db";
-import { parseUsdInputToUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
+import {
+  parseUsdInputToUsdcAtomic,
+  SUPPORTED_RECIPE_PRICE_LABELS,
+  usdcAtomicToUsdNumber,
+} from "@/lib/money";
 import { recipes, creators } from "@/lib/schema";
 import {
   buildCreatorPublishMessage,
@@ -86,7 +90,7 @@ export async function POST(req: NextRequest) {
   const priceUsdcAtomic = parseUsdInputToUsdcAtomic(body.price);
   if (priceUsdcAtomic === null) {
     return NextResponse.json(
-      { error: "price must be a USD amount with at most two decimals" },
+      { error: `price must be one of ${SUPPORTED_RECIPE_PRICE_LABELS.join(", ")}` },
       { status: 400 },
     );
   }
