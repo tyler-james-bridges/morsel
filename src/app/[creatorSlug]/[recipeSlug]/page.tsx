@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useAccount } from "wagmi";
 import Link from "next/link";
 import IntroContent from "@/components/IntroContent";
 import RecipeContent from "@/components/RecipeContent";
@@ -49,11 +50,14 @@ export default function RecipeArticlePage() {
   const params = useParams();
   const creatorSlug = params.creatorSlug as string;
   const recipeSlug = params.recipeSlug as string;
+  const { isConnected, isReconnecting } = useAccount();
 
   const [recipe, setRecipe] = useState<RecipeData | null>(null);
   const [fullContent, setFullContent] = useState<FullContent | null>(null);
-  const [locked, setLocked] = useState(true);
   const [loading, setLoading] = useState(true);
+
+  const walletActive = isConnected || isReconnecting;
+  const locked = !recipe || (!recipe.isFree && (!walletActive || !fullContent));
 
   useEffect(() => {
     if (!creatorSlug || !recipeSlug) return;
@@ -74,9 +78,6 @@ export default function RecipeArticlePage() {
         const fullRes = await fetch(`/api/recipes/${data.id}/full`);
         if (!cancelled && fullRes.ok) {
           setFullContent(await fullRes.json());
-          setLocked(false);
-        } else if (!cancelled) {
-          setLocked(true);
         }
       } catch {
         // API unavailable
@@ -92,7 +93,6 @@ export default function RecipeArticlePage() {
 
   function handleUnlocked(data: FullContent) {
     setFullContent(data);
-    setLocked(false);
   }
 
   if (loading) {
