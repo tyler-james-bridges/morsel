@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeXPaymentResponse, getDefaultAsset } from "x402/shared";
-import { withX402 } from "x402-next";
+import { decodePaymentResponseHeader } from "@x402/core/http";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import type { Network } from "@x402/core/types";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { withX402, x402ResourceServer } from "@x402/next";
 import db, { getDb } from "@/lib/db";
 import { getPriceUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
 import { PAYOUT_ADDRESS, X402_FACILITATOR_URL } from "@/lib/payment";
@@ -17,6 +20,21 @@ import {
 import { and, eq, sql } from "drizzle-orm";
 import { getAddress, isAddress, verifyMessage, type Hex } from "viem";
 import { v4 as uuid } from "uuid";
+
+const BASE_NETWORK: Network = "eip155:8453";
+const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const USDC_EXTRA = { name: "USD Coin", version: "2", decimals: 6 };
+
+let resourceServer: x402ResourceServer | null = null;
+
+function getX402Server() {
+  if (!resourceServer) {
+    resourceServer = new x402ResourceServer(
+      new HTTPFacilitatorClient({ url: X402_FACILITATOR_URL }),
+    ).register(BASE_NETWORK, new ExactEvmScheme());
+  }
+  return resourceServer;
+}
 
 function getFullRecipeContent(recipe: typeof recipes.$inferSelect) {
   return {
@@ -175,32 +193,37 @@ export async function GET(
 
   const wrapped = withX402(
     handler,
-    // Payments settle to the reputable PAYOUT_ADDRESS (ack-onchain.base.eth),
-    // decoupled from the creator's identity address.
-    PAYOUT_ADDRESS,
     {
-      price: {
-        amount: getPriceUsdcAtomic(recipe).toString(),
-        asset: getDefaultAsset("base"),
-      },
-      network: "base",
-      config: {
-        description: `Unlock "${recipe.title}"`,
-      },
+      accepts: [
+        {
+          scheme: "exact",
+          payTo: PAYOUT_ADDRESS,
+          price: {
+            amount: getPriceUsdcAtomic(recipe).toString(),
+            asset: BASE_USDC,
+            extra: USDC_EXTRA,
+          },
+          network: BASE_NETWORK,
+        },
+      ],
+      description: `Unlock "${recipe.title}"`,
+      mimeType: "application/json",
     },
-    // Base-mainnet-capable facilitator (payai). Without this, x402-next
-    // defaults to the testnet-only facilitator and settlement fails with
-    // "unexpected_error". payai needs no API keys.
-    { url: X402_FACILITATOR_URL },
+    getX402Server(),
   );
 
   const response = await wrapped(req);
-  const paymentResponse = response.headers.get("x-payment-response");
+  const paymentResponse =
+    response.headers.get("payment-response") ??
+    response.headers.get("x-payment-response");
 
   if (response.ok && paymentResponse) {
     try {
-      const settlement = decodeXPaymentResponse(paymentResponse);
-      const payerAddress = settlement.payer.toLowerCase();
+      const settlement = decodePaymentResponseHeader(paymentResponse);
+      const payerAddress = settlement.payer?.toLowerCase();
+      if (!payerAddress || !settlement.transaction) {
+        throw new Error("Missing x402 settlement details");
+      }
 
       // Record the unlock under every address the buyer might present on a
       // later request so restore checks can match:
