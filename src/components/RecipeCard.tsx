@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 interface RecipeCardProps {
@@ -43,12 +44,14 @@ export default function RecipeCard({
         </div>
 
         {/* Image */}
-        <div className="relative">
-          <img
+        <div className="relative aspect-[4/3]">
+          <Image
             src={imageUrl}
             alt={title}
-            className="w-full aspect-[4/3] object-cover"
-            loading="lazy"
+            fill
+            sizes="(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw"
+            unoptimized
+            className="object-cover"
           />
           <span className="price-badge absolute top-3 right-3 z-10">{price}</span>
         </div>

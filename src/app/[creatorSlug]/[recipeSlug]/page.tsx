@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAccount } from "wagmi";
+import Image from "next/image";
 import Link from "next/link";
 import IntroContent from "@/components/IntroContent";
 import RecipeContent from "@/components/RecipeContent";
@@ -139,9 +140,12 @@ export default function RecipeArticlePage() {
       <div className="flex items-center justify-between mb-[22px]">
         <Link href={`/${recipe.creator.slug}`} className="flex items-center gap-3 group">
           {recipe.creator.avatarUrl ? (
-            <img
+            <Image
               src={recipe.creator.avatarUrl}
               alt={recipe.creator.name}
+              width={42}
+              height={42}
+              unoptimized
               className="w-[42px] h-[42px] rounded-[3px] object-cover"
             />
           ) : (
@@ -189,11 +193,14 @@ export default function RecipeArticlePage() {
       </p>
 
       {/* Hero image */}
-      <div className="relative rounded-[4px] overflow-hidden mb-3.5">
-        <img
+      <div className="relative aspect-[16/9] rounded-[4px] overflow-hidden mb-3.5">
+        <Image
           src={recipe.imageUrl}
           alt={recipe.title}
-          className="w-full aspect-[16/9] object-cover"
+          fill
+          sizes="(min-width: 768px) 672px, 100vw"
+          unoptimized
+          className="object-cover"
         />
       </div>
 
@@ -253,9 +260,12 @@ export default function RecipeArticlePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {recipe.creator.avatarUrl ? (
-                <img
+                <Image
                   src={recipe.creator.avatarUrl}
                   alt={recipe.creator.name}
+                  width={52}
+                  height={52}
+                  unoptimized
                   className="w-[52px] h-[52px] rounded-[3px] object-cover"
                 />
               ) : (

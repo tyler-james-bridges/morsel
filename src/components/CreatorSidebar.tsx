@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 interface CreatorInfo {
@@ -68,9 +69,12 @@ export default function CreatorSidebar() {
             >
               <div className="flex items-center gap-3 min-w-0">
                 {creator.avatarUrl ? (
-                  <img
+                  <Image
                     src={creator.avatarUrl}
                     alt={creator.name}
+                    width={34}
+                    height={34}
+                    unoptimized
                     className="w-[34px] h-[34px] rounded-[3px] object-cover"
                   />
                 ) : (

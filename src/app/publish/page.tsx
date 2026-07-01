@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { base } from "wagmi/chains";
@@ -468,7 +469,16 @@ export default function PublishPage() {
             <span className="eyebrow mb-3 block">Live preview</span>
             <div className="press-card">
               {imageUrl ? (
-                <img src={imageUrl} alt="Preview" className="w-full aspect-[16/9] object-cover" />
+                <div className="relative aspect-[16/9]">
+                  <Image
+                    src={imageUrl}
+                    alt="Preview"
+                    fill
+                    sizes="360px"
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
               ) : (
                 <div className="w-full aspect-[16/9] bg-paper-2 grid place-items-center text-ink-4 text-[13px] font-mono">
                   Add photo URL
