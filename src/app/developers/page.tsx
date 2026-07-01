@@ -9,7 +9,7 @@ const ACTIONS = [
   { name: "search", price: "free", desc: "Search recipes by query, cuisine, dietary tags. Returns previews." },
   { name: "feed", price: "free", desc: "Browse the recipe feed by tab (featured, latest, trending). Paginated." },
   { name: "recipe", price: "free", desc: "Get a single recipe's public metadata by ID." },
-  { name: "recipe_full", price: "$0.50", desc: "Get the full recipe (ingredients, steps, notes). Requires x402 payment." },
+  { name: "recipe_full", price: "$0.25-$0.75", desc: "Unlock full ingredients and steps via GET /api/recipes/{id}/full with x402." },
   { name: "creators", price: "free", desc: "List top creators on the platform." },
   { name: "creator", price: "free", desc: "Get a creator's profile and recipe list by address." },
 ];
@@ -20,9 +20,9 @@ const EXAMPLES: Record<string, { req: string; res: string; resLabel?: string }> 
     res: `200 OK\n\n{\n  "recipes": [\n    {\n      "id": "r8",\n      "title": "20-Minute Green Curry",\n      "creator": "Amara Singh",\n      "price": "$0.25",\n      "cuisine": "Thai",\n      "locked": true\n    }\n  ]\n}`,
   },
   recipe_full: {
-    req: `POST ${ENDPOINT}\nContent-Type: application/json\n\n{\n  "action": "recipe_full",\n  "recipeId": "r1"\n}`,
-    res: `402 Payment Required\n\n{\n  "x402Version": 1,\n  "accepts": [{\n    "scheme": "exact",\n    "network": "base",\n    "asset": "USDC",\n    "maxAmountRequired": "500000",\n    "payTo": "0x7a3f...9c21"\n  }],\n  "error": "Price: 0.50 USDC on Base"\n}`,
-    resLabel: "RESPONSE — payment required",
+    req: `GET https://morsel.0x402.sh/api/recipes/r1/full`,
+    res: `402 Payment Required\nPayment-Required: eyJ4NDAyVmVyc2lvbiI6Mi...\n\nDecoded header:\n{\n  "x402Version": 2,\n  "accepts": [{\n    "scheme": "exact",\n    "network": "eip155:8453",\n    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",\n    "amount": "500000",\n    "payTo": "0x668aDd9213985E7Fd613Aec87767C892f4b9dF1c"\n  }]\n}`,
+    resLabel: "RESPONSE — x402 v2 payment required",
   },
   feed: {
     req: `POST ${ENDPOINT}\nContent-Type: application/json\n\n{\n  "action": "feed",\n  "tab": "trending",\n  "limit": 10\n}`,
