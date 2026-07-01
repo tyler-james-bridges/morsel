@@ -5,6 +5,7 @@ import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { base } from "wagmi/chains";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { createRecipeAccessHeaders } from "@/lib/wallet-auth";
+import { readPaymentRequired } from "@/lib/x402-browser";
 
 interface PaywallOverlayProps {
   price: string;
@@ -102,35 +103,23 @@ export default function PaywallOverlay({
         throw new Error(`Unexpected response: ${initialRes.status}`);
       }
 
-      // Step 2: Parse 402 response body for payment requirements
+      // Step 2: Parse x402 v2 payment requirements from the 402 header.
       setStage(1);
-      const body = await initialRes.json();
-      if (!body.accepts || (Array.isArray(body.accepts) && body.accepts.length === 0)) {
-        throw new Error("No payment requirements in 402 response");
-      }
+      const paymentRequired = await readPaymentRequired(initialRes);
 
-      const paymentRequirements = Array.isArray(body.accepts)
-        ? body.accepts
-        : [body.accepts];
-
-      // Step 3: Create payment header using x402 client
-      const { createPaymentHeader, selectPaymentRequirements } = await import(
-        "x402/client"
-      );
-
-      const requirement = selectPaymentRequirements(
-        paymentRequirements,
-        "base",
-        "exact",
-      );
-
-      const x402Version = body.x402Version || 1;
-
-      const paymentHeader = await createPaymentHeader(
-        walletClient as unknown as Parameters<typeof createPaymentHeader>[0],
-        x402Version,
-        requirement,
-      );
+      // Step 3: Create payment signature using the x402 v2 client.
+      const { x402Client, x402HTTPClient } = await import("@x402/core/client");
+      const { registerExactEvmScheme } = await import("@x402/evm/exact/client");
+      const client = new x402Client();
+      registerExactEvmScheme(client, {
+        signer: {
+          address: address as `0x${string}`,
+          signTypedData: (message) => walletClient.signTypedData(message),
+        },
+      });
+      const httpClient = new x402HTTPClient(client);
+      const paymentPayload = await httpClient.createPaymentPayload(paymentRequired);
+      const paymentHeaders = httpClient.encodePaymentSignatureHeader(paymentPayload);
 
       // Step 4: Re-fetch with payment header.
       // Include wallet-auth headers so the server records the unlock under the
@@ -139,7 +128,7 @@ export default function PaywallOverlay({
       setStage(2);
       const paidRes = await fetch(`/api/recipes/${recipeId}/full`, {
         headers: {
-          "x-payment": paymentHeader,
+          ...paymentHeaders,
           ...authHeaders,
         },
       });

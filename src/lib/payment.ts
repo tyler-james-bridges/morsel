@@ -12,9 +12,7 @@ export const PAYOUT_ADDRESS =
 
 // x402 facilitator that verifies + settles payments.
 //
-// The x402-next default facilitator (https://x402.org/facilitator) only
-// supports testnet, so real Base-mainnet USDC payments fail verification
-// with "unexpected_error". payai's facilitator supports the `exact` scheme
-// on Base mainnet (network: "base"), matching how x402-cannastack settles.
+// payai's facilitator supports the `exact` scheme on Base mainnet, matching
+// how x402-cannastack settles.
 export const X402_FACILITATOR_URL = (process.env.X402_FACILITATOR_BASE ||
   "https://facilitator.payai.network") as `${string}://${string}`;
