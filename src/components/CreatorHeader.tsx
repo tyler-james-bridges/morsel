@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import SubscribeButton from "./SubscribeButton";
 
 interface CreatorHeaderProps {
@@ -42,10 +43,13 @@ export default function CreatorHeader({
       {/* Banner */}
       <div className="relative overflow-hidden mb-[-3.5rem]" style={{ height: "clamp(180px, 26vw, 300px)" }}>
         {bannerUrl ? (
-          <img
+          <Image
             src={bannerUrl}
             alt={`${name} banner`}
-            className="w-full h-full object-cover"
+            fill
+            sizes="100vw"
+            unoptimized
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-accent/20 via-paper-2 to-paper" />
@@ -57,9 +61,12 @@ export default function CreatorHeader({
       <div className="relative px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 flex-wrap">
           {avatarUrl ? (
-            <img
+            <Image
               src={avatarUrl}
               alt={name}
+              width={108}
+              height={108}
+              unoptimized
               className="w-[108px] h-[108px] rounded-[4px] object-cover shadow-[0_0_0_4px_var(--color-paper)]"
             />
           ) : (

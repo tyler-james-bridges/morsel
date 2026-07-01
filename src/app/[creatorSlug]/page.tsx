@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import CreatorHeader from "@/components/CreatorHeader";
 import { RecipePreview } from "@/lib/types";
@@ -120,12 +121,14 @@ export default function CreatorSlugPage() {
                   className="block group"
                 >
                   <article className="press-card">
-                    <div className="relative">
-                      <img
+                    <div className="relative aspect-[4/3]">
+                      <Image
                         src={recipe.imageUrl}
                         alt={recipe.title}
-                        className="w-full aspect-[4/3] object-cover"
-                        loading="lazy"
+                        fill
+                        sizes="(min-width: 1024px) 272px, (min-width: 640px) 50vw, 100vw"
+                        unoptimized
+                        className="object-cover"
                       />
                       <span className="price-badge absolute top-3 right-3 z-10">
                         {recipe.isFree ? "Free" : recipe.price}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 interface RecipeFeedCardProps {
@@ -50,9 +51,12 @@ export default function RecipeFeedCard({
       <div className="flex items-center gap-2.5 px-[18px] pt-3.5 pb-3">
         <Link href={`/creator/${creatorAddress}`} className="flex items-center gap-2.5 group min-w-0">
           {creatorAvatarUrl ? (
-            <img
+            <Image
               src={creatorAvatarUrl}
               alt={creatorName}
+              width={30}
+              height={30}
+              unoptimized
               className="w-[30px] h-[30px] rounded-[3px] object-cover"
             />
           ) : (
@@ -67,8 +71,15 @@ export default function RecipeFeedCard({
       </div>
 
       {/* Hero image */}
-      <Link href={`/recipe/${id}`} className="block relative">
-        <img src={imageUrl} alt={title} className="w-full aspect-[16/9] object-cover" loading="lazy" />
+      <Link href={`/recipe/${id}`} className="block relative aspect-[16/9]">
+        <Image
+          src={imageUrl}
+          alt={title}
+          fill
+          sizes="(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw"
+          unoptimized
+          className="object-cover"
+        />
         <span className="price-badge absolute top-3 right-3 z-10">{price}</span>
       </Link>
 
