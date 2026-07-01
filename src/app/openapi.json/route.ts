@@ -11,7 +11,7 @@ function buildSpec() {
       description:
         "Creator recipe discovery and x402 recipe unlocks. Agents can search/feed recipes first, then pay to unlock full ingredients and steps.",
       "x-guidance":
-        "Call POST /api/tool with action=search or action=feed to find a recipe preview. Use the returned recipe ID with GET /api/recipes/{id}/full to unlock full recipe content via x402 on Base USDC.",
+        "Call POST /api/tool with action=search, action=feed, or action=recipe to find a recipe preview. Use the returned recipe ID with GET /api/recipes/{id}/full to unlock full recipe content via x402 on Base USDC. action=recipe_full is accepted for free full recipes or payment guidance, but paid unlocks use GET /api/recipes/{id}/full.",
       contact: { url: BASE },
     },
     servers: [{ url: BASE }],
@@ -30,7 +30,7 @@ function buildSpec() {
                   properties: {
                     action: {
                       type: "string",
-                      enum: ["search", "feed", "recipe", "creators", "creator"],
+                      enum: ["search", "feed", "recipe", "recipe_full", "creators", "creator"],
                     },
                     query: { type: "string" },
                     cuisine: { type: "string" },
