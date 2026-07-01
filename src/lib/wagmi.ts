@@ -15,8 +15,12 @@ const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
 // A missing WalletConnect project id must NOT crash the production build.
 // This module is evaluated during static prerendering (e.g. /_not-found),
 // where throwing aborts the entire build. WalletConnect is one optional
-// connector; degrade gracefully and warn at runtime instead of hard-failing.
-if (!walletConnectProjectId && process.env.NODE_ENV === "production") {
+// connector; degrade gracefully and only warn in browser development.
+if (
+  typeof window !== "undefined" &&
+  !walletConnectProjectId &&
+  process.env.NODE_ENV === "development"
+) {
   console.warn(
     "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set. WalletConnect will be " +
       "unavailable. Set it for full wallet support: https://cloud.reown.com.",
