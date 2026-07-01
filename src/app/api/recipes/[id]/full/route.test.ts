@@ -62,17 +62,23 @@ vi.mock("@/lib/db", () => {
   };
 });
 
-vi.mock("x402-next", () => ({
+vi.mock("@x402/next", () => ({
   withX402: mocks.withX402,
+  x402ResourceServer: class {
+    register = vi.fn().mockReturnThis();
+  },
 }));
 
-vi.mock("x402/shared", () => ({
-  decodeXPaymentResponse: mocks.decodeXPaymentResponse,
-  getDefaultAsset: vi.fn(() => ({
-    address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    decimals: 6,
-    eip712: { name: "USD Coin", version: "2" },
-  })),
+vi.mock("@x402/core/server", () => ({
+  HTTPFacilitatorClient: class {},
+}));
+
+vi.mock("@x402/core/http", () => ({
+  decodePaymentResponseHeader: mocks.decodeXPaymentResponse,
+}));
+
+vi.mock("@x402/evm/exact/server", () => ({
+  ExactEvmScheme: class {},
 }));
 
 vi.mock("viem", async () => {
@@ -130,14 +136,14 @@ beforeEach(() => {
   mocks.withX402.mockImplementation((handler) => async (req: NextRequest) => {
     const payment = req.headers.get("x-payment");
     if (!payment) {
-      return Response.json({ x402Version: 1, accepts: [] }, { status: 402 });
+      return Response.json({ x402Version: 2, accepts: [] }, { status: 402 });
     }
     if (payment !== "valid") {
       return Response.json({ error: "invalid payment" }, { status: 402 });
     }
 
     const response = await handler(req);
-    response.headers.set("x-payment-response", "settled");
+    response.headers.set("payment-response", "settled");
     return response;
   });
 });
