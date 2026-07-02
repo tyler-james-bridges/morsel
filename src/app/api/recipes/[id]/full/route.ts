@@ -5,7 +5,11 @@ import type { Network } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { withX402, x402ResourceServer } from "@x402/next";
 import db, { getDb } from "@/lib/db";
-import { getPriceUsdcAtomic, usdcAtomicToUsdNumber } from "@/lib/money";
+import {
+  getPriceUsdcAtomic,
+  SUPPORTED_RECIPE_PRICE_USDC_ATOMIC,
+  usdcAtomicToUsdNumber,
+} from "@/lib/money";
 import { PAYOUT_ADDRESS, X402_FACILITATOR_URL } from "@/lib/payment";
 import {
   createRecipeAccessCookie,
@@ -24,6 +28,7 @@ import { v4 as uuid } from "uuid";
 const BASE_NETWORK: Network = "eip155:8453";
 const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const USDC_EXTRA = { name: "USD Coin", version: "2", decimals: 6 };
+const OPENAPI_TEMPLATE_ID = "{id}";
 
 let resourceServer: x402ResourceServer | null = null;
 
@@ -52,6 +57,33 @@ function appendAccessCookie(
   const cookie = createRecipeAccessCookie(recipeId, buyerAddress);
   if (cookie) response.headers.append("Set-Cookie", cookie);
   return response;
+}
+
+function hasPaymentHeader(req: NextRequest) {
+  return Boolean(req.headers.get("payment-signature") || req.headers.get("x-payment"));
+}
+
+function withRecipePayment(
+  handler: (req: NextRequest) => Promise<NextResponse>,
+  amount: number,
+  description: string,
+) {
+  return withX402(
+    handler,
+    {
+      accepts: [
+        {
+          scheme: "exact",
+          payTo: PAYOUT_ADDRESS,
+          price: { amount: amount.toString(), asset: BASE_USDC, extra: USDC_EXTRA },
+          network: BASE_NETWORK,
+        },
+      ],
+      description,
+      mimeType: "application/json",
+    },
+    getX402Server(),
+  );
 }
 
 async function hasRecordedUnlock(recipeId: string, buyerAddress: string) {
@@ -146,6 +178,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  // x402scan bulk registration probes templated OpenAPI paths literally.
+  if (id === OPENAPI_TEMPLATE_ID) {
+    if (hasPaymentHeader(req)) {
+      return NextResponse.json({ error: "Use a concrete recipe ID" }, { status: 404 });
+    }
+
+    const wrapped = withRecipePayment(
+      async () => NextResponse.json({ error: "Use a concrete recipe ID" }, { status: 404 }),
+      SUPPORTED_RECIPE_PRICE_USDC_ATOMIC[0],
+      "Unlock a paid Morsel recipe",
+    );
+
+    return wrapped(req);
+  }
+
   await getDb();
 
   const recipe = (
@@ -191,25 +239,10 @@ export async function GET(
     return NextResponse.json(getFullRecipeContent(recipe));
   };
 
-  const wrapped = withX402(
+  const wrapped = withRecipePayment(
     handler,
-    {
-      accepts: [
-        {
-          scheme: "exact",
-          payTo: PAYOUT_ADDRESS,
-          price: {
-            amount: getPriceUsdcAtomic(recipe).toString(),
-            asset: BASE_USDC,
-            extra: USDC_EXTRA,
-          },
-          network: BASE_NETWORK,
-        },
-      ],
-      description: `Unlock "${recipe.title}"`,
-      mimeType: "application/json",
-    },
-    getX402Server(),
+    getPriceUsdcAtomic(recipe),
+    `Unlock "${recipe.title}"`,
   );
 
   const response = await wrapped(req);

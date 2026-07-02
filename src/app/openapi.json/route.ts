@@ -12,7 +12,7 @@ function buildSpec() {
         "Creator recipe discovery and x402 recipe unlocks. Agents can search/feed recipes first, then pay to unlock full ingredients and steps.",
       "x-guidance":
         "Call POST /api/tool with action=search, action=feed, or action=recipe to find a recipe preview. Use the returned recipe ID with GET /api/recipes/{id}/full to unlock full recipe content via x402 on Base USDC. action=recipe_full is accepted for free full recipes or payment guidance, but paid unlocks use GET /api/recipes/{id}/full.",
-      contact: { url: BASE },
+      contact: { email: "tylerscv22@gmail.com", url: BASE },
     },
     servers: [{ url: BASE }],
     paths: {
@@ -21,6 +21,7 @@ function buildSpec() {
           operationId: "morsel_tool",
           summary: "Search, feed, and preview Morsel recipes",
           tags: ["Recipes"],
+          security: [],
           requestBody: {
             required: true,
             content: {
