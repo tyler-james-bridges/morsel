@@ -184,6 +184,7 @@ describe("GET /api/recipes/[id]/full", () => {
     expect(body.accepts[0].amount).toBe("500000");
     expect(response.headers.get("payment-required")).toBe("encoded-requirements");
     expect(mocks.withX402).toHaveBeenCalledTimes(1);
+    expect(routeConfig.extensions.bazaar.info.input.method).toBe("GET");
     expect(routeConfig.extensions.bazaar.schema.properties.input).toBeDefined();
     expect(routeConfig.extensions.bazaar.schema.properties.output).toBeDefined();
   });

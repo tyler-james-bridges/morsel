@@ -41,10 +41,28 @@ const FULL_RECIPE_OUTPUT_SCHEMA = {
     notes: { type: ["string", "null"] },
   },
 };
-const FULL_RECIPE_DISCOVERY_EXTENSION = declareDiscoveryExtension({
-  inputSchema: { properties: {} },
-  output: { example: {}, schema: FULL_RECIPE_OUTPUT_SCHEMA },
-});
+type DiscoveryExtension = ReturnType<typeof declareDiscoveryExtension>;
+
+function withDiscoveryMethod(extension: DiscoveryExtension, method: "GET") {
+  return {
+    ...extension,
+    bazaar: {
+      ...extension.bazaar,
+      info: {
+        ...extension.bazaar.info,
+        input: { ...extension.bazaar.info.input, method },
+      },
+    },
+  };
+}
+
+const FULL_RECIPE_DISCOVERY_EXTENSION = withDiscoveryMethod(
+  declareDiscoveryExtension({
+    inputSchema: { properties: {} },
+    output: { example: {}, schema: FULL_RECIPE_OUTPUT_SCHEMA },
+  }),
+  "GET",
+);
 
 let resourceServer: x402ResourceServer | null = null;
 
