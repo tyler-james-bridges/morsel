@@ -12,10 +12,27 @@ const state = vi.hoisted(() => ({
     payer: "0x0000000000000000000000000000000000000001",
     transaction: "0xtxhash",
   },
+  paymentRequired: {
+    x402Version: 2,
+    error: "Payment required",
+    resource: { url: "http://localhost/api/recipes/recipe-1/full" },
+    accepts: [
+      {
+        scheme: "exact",
+        network: "eip155:8453",
+        amount: "500000",
+        asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        payTo: "0x668aDd9213985E7Fd613Aec87767C892f4b9dF1c",
+        maxTimeoutSeconds: 300,
+        extra: { name: "USD Coin", version: "2", decimals: 6 },
+      },
+    ],
+  },
 }));
 
 const mocks = vi.hoisted(() => ({
   withX402: vi.fn(),
+  decodePaymentRequired: vi.fn(),
   decodeXPaymentResponse: vi.fn(),
   verifyMessage: vi.fn(),
 }));
@@ -74,6 +91,7 @@ vi.mock("@x402/core/server", () => ({
 }));
 
 vi.mock("@x402/core/http", () => ({
+  decodePaymentRequiredHeader: mocks.decodePaymentRequired,
   decodePaymentResponseHeader: mocks.decodeXPaymentResponse,
 }));
 
@@ -128,18 +146,26 @@ beforeEach(() => {
   state.updateCount = 0;
   state.verifyMessage = false;
   mocks.withX402.mockReset();
+  mocks.decodePaymentRequired.mockReset();
   mocks.decodeXPaymentResponse.mockReset();
   mocks.verifyMessage.mockReset();
 
   mocks.verifyMessage.mockImplementation(async () => state.verifyMessage);
+  mocks.decodePaymentRequired.mockImplementation(() => state.paymentRequired);
   mocks.decodeXPaymentResponse.mockImplementation(() => state.settlement);
   mocks.withX402.mockImplementation((handler) => async (req: NextRequest) => {
-    const payment = req.headers.get("x-payment");
+    const payment = req.headers.get("payment-signature");
     if (!payment) {
-      return Response.json({ x402Version: 2, accepts: [] }, { status: 402 });
+      return Response.json(
+        {},
+        { status: 402, headers: { "payment-required": "encoded-requirements" } },
+      );
     }
     if (payment !== "valid") {
-      return Response.json({ error: "invalid payment" }, { status: 402 });
+      return Response.json(
+        {},
+        { status: 402, headers: { "payment-required": "encoded-requirements" } },
+      );
     }
 
     const response = await handler(req);
@@ -152,8 +178,11 @@ describe("GET /api/recipes/[id]/full", () => {
   it("returns an x402 challenge for the OpenAPI template path", async () => {
     const response = await callRoute(undefined, "{id}");
     const routeConfig = mocks.withX402.mock.calls[0][1];
+    const body = await response.json();
 
     expect(response.status).toBe(402);
+    expect(body.accepts[0].amount).toBe("500000");
+    expect(response.headers.get("payment-required")).toBe("encoded-requirements");
     expect(mocks.withX402).toHaveBeenCalledTimes(1);
     expect(routeConfig.extensions.bazaar.schema.properties.input).toBeDefined();
     expect(routeConfig.extensions.bazaar.schema.properties.output).toBeDefined();
@@ -228,7 +257,7 @@ describe("GET /api/recipes/[id]/full", () => {
   });
 
   it("records a successful x402 settlement exactly once", async () => {
-    const response = await callRoute({ "x-payment": "valid" });
+    const response = await callRoute({ "payment-signature": "valid" });
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -244,6 +273,13 @@ describe("GET /api/recipes/[id]/full", () => {
     ]);
     expect(state.updateCount).toBe(1);
     expect(response.headers.get("set-cookie")).toContain("morsel_access_");
+  });
+
+  it("accepts legacy x-payment retries", async () => {
+    const response = await callRoute({ "x-payment": "valid" });
+
+    expect(response.status).toBe(200);
+    expect(state.insertedUnlocks).toHaveLength(1);
   });
 
   it("still returns paid content if unlock recording fails", async () => {

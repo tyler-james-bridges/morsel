@@ -38,6 +38,14 @@ describe("readPaymentRequired", () => {
     });
   });
 
+  it("reads payment requirements from a JSON 402 body fallback", async () => {
+    const response = Response.json(paymentRequired, { status: 402 });
+
+    await expect(readPaymentRequired(response)).resolves.toMatchObject({
+      accepts: [expect.objectContaining({ amount: "500000" })],
+    });
+  });
+
   it("rejects 402 responses without payment requirements", async () => {
     const response = new Response("{}", { status: 402 });
 

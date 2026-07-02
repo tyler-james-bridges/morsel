@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodePaymentResponseHeader } from "@x402/core/http";
+import {
+  decodePaymentRequiredHeader,
+  decodePaymentResponseHeader,
+} from "@x402/core/http";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { Network } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
@@ -74,6 +77,29 @@ function appendAccessCookie(
 
 function hasPaymentHeader(req: NextRequest) {
   return Boolean(req.headers.get("payment-signature") || req.headers.get("x-payment"));
+}
+
+function normalizePaymentHeader(req: NextRequest) {
+  const legacyPayment = req.headers.get("x-payment");
+  if (!legacyPayment || req.headers.get("payment-signature")) return req;
+
+  const headers = new Headers(req.headers);
+  headers.set("payment-signature", legacyPayment);
+  return new NextRequest(req.url, { headers, method: req.method });
+}
+
+function withPaymentRequiredBody(response: NextResponse) {
+  const header = response.headers.get("payment-required");
+  if (!header || (response.status !== 402 && response.status !== 412)) return response;
+
+  try {
+    return NextResponse.json(decodePaymentRequiredHeader(header), {
+      status: response.status,
+      headers: new Headers(response.headers),
+    });
+  } catch {
+    return response;
+  }
 }
 
 function withRecipePayment(
@@ -205,7 +231,7 @@ export async function GET(
       "Unlock a paid Morsel recipe",
     );
 
-    return wrapped(req);
+    return withPaymentRequiredBody(await wrapped(req));
   }
 
   await getDb();
@@ -259,7 +285,7 @@ export async function GET(
     `Unlock "${recipe.title}"`,
   );
 
-  const response = await wrapped(req);
+  const response = await wrapped(normalizePaymentHeader(req));
   const paymentResponse =
     response.headers.get("payment-response") ??
     response.headers.get("x-payment-response");
@@ -307,5 +333,5 @@ export async function GET(
     }
   }
 
-  return response;
+  return withPaymentRequiredBody(response);
 }
