@@ -151,9 +151,12 @@ beforeEach(() => {
 describe("GET /api/recipes/[id]/full", () => {
   it("returns an x402 challenge for the OpenAPI template path", async () => {
     const response = await callRoute(undefined, "{id}");
+    const routeConfig = mocks.withX402.mock.calls[0][1];
 
     expect(response.status).toBe(402);
     expect(mocks.withX402).toHaveBeenCalledTimes(1);
+    expect(routeConfig.extensions.bazaar.schema.properties.input).toBeDefined();
+    expect(routeConfig.extensions.bazaar.schema.properties.output).toBeDefined();
   });
 
   it("does not accept payments sent to the OpenAPI template path", async () => {

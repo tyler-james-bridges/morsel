@@ -3,6 +3,7 @@ import { decodePaymentResponseHeader } from "@x402/core/http";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { Network } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { withX402, x402ResourceServer } from "@x402/next";
 import db, { getDb } from "@/lib/db";
 import {
@@ -29,6 +30,18 @@ const BASE_NETWORK: Network = "eip155:8453";
 const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const USDC_EXTRA = { name: "USD Coin", version: "2", decimals: 6 };
 const OPENAPI_TEMPLATE_ID = "{id}";
+const FULL_RECIPE_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    ingredients: { type: "array", items: { type: "string" } },
+    steps: { type: "array", items: { type: "string" } },
+    notes: { type: ["string", "null"] },
+  },
+};
+const FULL_RECIPE_DISCOVERY_EXTENSION = declareDiscoveryExtension({
+  inputSchema: { properties: {} },
+  output: { example: {}, schema: FULL_RECIPE_OUTPUT_SCHEMA },
+});
 
 let resourceServer: x402ResourceServer | null = null;
 
@@ -81,6 +94,7 @@ function withRecipePayment(
       ],
       description,
       mimeType: "application/json",
+      extensions: FULL_RECIPE_DISCOVERY_EXTENSION,
     },
     getX402Server(),
   );
