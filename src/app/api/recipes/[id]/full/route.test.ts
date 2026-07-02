@@ -107,15 +107,15 @@ function makeRecipe(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeRequest(headers?: HeadersInit) {
-  return new NextRequest("http://localhost/api/recipes/recipe-1/full", {
+function makeRequest(headers?: HeadersInit, id = "recipe-1") {
+  return new NextRequest(`http://localhost/api/recipes/${id}/full`, {
     headers,
   });
 }
 
-async function callRoute(headers?: HeadersInit) {
-  return GET(makeRequest(headers), {
-    params: Promise.resolve({ id: "recipe-1" }),
+async function callRoute(headers?: HeadersInit, id = "recipe-1") {
+  return GET(makeRequest(headers, id), {
+    params: Promise.resolve({ id }),
   });
 }
 
@@ -149,6 +149,22 @@ beforeEach(() => {
 });
 
 describe("GET /api/recipes/[id]/full", () => {
+  it("returns an x402 challenge for the OpenAPI template path", async () => {
+    const response = await callRoute(undefined, "{id}");
+
+    expect(response.status).toBe(402);
+    expect(mocks.withX402).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not accept payments sent to the OpenAPI template path", async () => {
+    const response = await callRoute({ "payment-signature": "valid" }, "{id}");
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.error).toBe("Use a concrete recipe ID");
+    expect(mocks.withX402).not.toHaveBeenCalled();
+  });
+
   it("returns free recipes without x402", async () => {
     state.recipe = makeRecipe({ isFree: 1 });
 
