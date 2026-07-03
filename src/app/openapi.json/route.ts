@@ -9,9 +9,9 @@ function buildSpec() {
       title: "Morsel",
       version: "1.0.0",
       description:
-        "Creator recipe unlocks via x402. Agents can pay to unlock full ingredients, steps, and notes for paid Morsel recipes.",
+        "Creator recipe unlocks and publishing via x402. Agents can pay to unlock full recipes or publish new recipes programmatically.",
       "x-guidance":
-        "Use a Morsel recipe ID with GET /api/recipes/{id}/full to unlock paid full recipe content via x402 on Base USDC. Public browsing endpoints exist for the web app, but this merchant discovery document intentionally lists only payable resources so registries do not report skipped free endpoints.",
+        "Use GET /api/recipes/{id}/full to unlock paid full recipe content via x402 on Base USDC. Use POST /api/recipes/create to publish: wallet-authenticated creators publish free, unsigned agents can pay the x402 listing fee and the settled payer becomes the creator address.",
       contact: { email: "tylerscv22@gmail.com", url: BASE },
     },
     servers: [{ url: BASE }],
@@ -48,6 +48,44 @@ function buildSpec() {
           },
         },
       },
+      "/api/recipes/create": {
+        post: {
+          operationId: "publish_recipe",
+          summary: "Publish a recipe",
+          tags: ["Recipes", "Publishing", "x402"],
+          "x-payment-info": {
+            price: { mode: "fixed", currency: "USD", amount: "0.10" },
+            protocols: [{ x402: {} }],
+            note: "Wallet-authenticated creators can publish without x402. Without wallet auth, a valid x402 payment is required and the settled payer becomes creatorAddress.",
+          },
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/RecipePublishRequest" },
+              },
+            },
+          },
+          parameters: [
+            { name: "x-wallet-address", in: "header", required: false, schema: { type: "string" } },
+            { name: "x-wallet-signature", in: "header", required: false, schema: { type: "string" } },
+            { name: "x-wallet-timestamp", in: "header", required: false, schema: { type: "string" } },
+          ],
+          responses: {
+            "201": {
+              description: "Recipe published",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/RecipePublishResponse" },
+                },
+              },
+            },
+            "400": { description: "Invalid publish request" },
+            "401": { description: "Invalid wallet signature" },
+            "402": { description: "Payment Required" },
+          },
+        },
+      },
     },
     components: {
       schemas: {
@@ -58,6 +96,57 @@ function buildSpec() {
             ingredients: { type: "array", items: { type: "string" } },
             steps: { type: "array", items: { type: "string" } },
             notes: { type: ["string", "null"] },
+          },
+        },
+        RecipePublishRequest: {
+          type: "object",
+          required: [
+            "title",
+            "description",
+            "imageUrl",
+            "price",
+            "cuisine",
+            "mealType",
+            "prepTime",
+            "cookTime",
+            "servings",
+            "ingredients",
+            "steps",
+          ],
+          properties: {
+            creatorAddress: {
+              type: "string",
+              description: "Only accepted with matching wallet signature. Omit for x402 payer publishing.",
+            },
+            creatorName: { type: "string" },
+            title: { type: "string" },
+            slug: { type: "string" },
+            introContent: { type: "string" },
+            isFree: { type: "boolean" },
+            description: { type: "string" },
+            imageUrl: { type: "string" },
+            price: { type: "string", enum: ["$0.25", "$0.50", "$0.75"] },
+            cuisine: { type: "string" },
+            mealType: { type: "string" },
+            dietaryTags: { type: "array", items: { type: "string" } },
+            prepTime: { type: "integer" },
+            cookTime: { type: "integer" },
+            servings: { type: "integer" },
+            difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
+            ingredients: { type: "array", items: { type: "string" } },
+            steps: { type: "array", items: { type: "string" } },
+            notes: { type: "string" },
+          },
+        },
+        RecipePublishResponse: {
+          type: "object",
+          required: ["success", "id", "slug", "creatorAddress", "authMode"],
+          properties: {
+            success: { type: "boolean" },
+            id: { type: "string" },
+            slug: { type: "string" },
+            creatorAddress: { type: "string" },
+            authMode: { type: "string", enum: ["wallet", "x402"] },
           },
         },
       },
