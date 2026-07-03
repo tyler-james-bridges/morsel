@@ -54,7 +54,7 @@ function buildSpec() {
           summary: "Publish a recipe",
           tags: ["Recipes", "Publishing", "x402"],
           "x-payment-info": {
-            price: { mode: "fixed", currency: "USD", amount: "0.10" },
+            price: { mode: "fixed", currency: "USD", amount: "0.01" },
             protocols: [{ x402: {} }],
             note: "Wallet-authenticated creators can publish without x402. Without wallet auth, a valid x402 payment is required and the settled payer becomes creatorAddress.",
           },

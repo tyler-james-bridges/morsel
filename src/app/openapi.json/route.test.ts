@@ -27,7 +27,7 @@ describe("GET /openapi.json", () => {
     expect(publish["x-payment-info"].price).toEqual({
       mode: "fixed",
       currency: "USD",
-      amount: "0.10",
+      amount: "0.01",
     });
     expect(publish.parameters.map((param: { name: string }) => param.name)).toEqual([
       "x-wallet-address",

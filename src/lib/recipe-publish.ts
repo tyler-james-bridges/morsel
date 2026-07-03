@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { getAddress, isAddress, verifyMessage, type Hex } from "viem";
 import { v4 as uuid } from "uuid";
 
-export const PUBLISH_FEE_USDC_ATOMIC = 100_000;
+export const PUBLISH_FEE_USDC_ATOMIC = 10_000;
 
 export interface RecipePublishInput {
   creatorAddress?: string;

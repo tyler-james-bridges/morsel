@@ -15,7 +15,7 @@ const state = vi.hoisted(() => ({
       {
         scheme: "exact",
         network: "eip155:8453",
-        amount: "100000",
+        amount: "10000",
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         payTo: "0x668aDd9213985E7Fd613Aec87767C892f4b9dF1c",
         maxTimeoutSeconds: 300,
@@ -189,7 +189,7 @@ describe("POST /api/recipes/create", () => {
     const routeConfig = mocks.withX402.mock.calls[0][1];
 
     expect(response.status).toBe(402);
-    expect(body.accepts[0].amount).toBe("100000");
+    expect(body.accepts[0].amount).toBe("10000");
     expect(routeConfig.extensions.bazaar.info.input.method).toBe("POST");
     expect(routeConfig.extensions.bazaar.info.input.bodyType).toBe("json");
     expect(validateDiscoveryExtension(routeConfig.extensions.bazaar).valid).toBe(true);
