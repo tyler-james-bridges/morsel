@@ -2,7 +2,6 @@ import db from "./db";
 import { creators, recipes } from "./schema";
 import { createHash } from "crypto";
 import { usdToUsdcAtomic } from "./money";
-import { eq, notInArray } from "drizzle-orm";
 
 // Deterministic ID from title so IDs stay consistent across cold starts
 function stableId(title: string): string {
@@ -162,46 +161,106 @@ const SAMPLE_RECIPES = [
     ]),
     notes: "Egg yolks only (no whites) makes these extra rich and chewy. Roughly chop the macadamias for a mix of chunks and pieces. Flaky salt on top is mandatory.",
   },
+  {
+    creatorAddress: "0xa102a2cb8AAc6C7d2c477412Ebb7d41d0Ce53495",
+    title: "Filipino Banana Buñuelos",
+    description: "Golden Filipino-style banana fritters with a soft, sweet banana center and crisp edges. Simple, cozy, and best eaten warm.",
+    slug: "filipino-banana-bunuelos",
+    introContent: "This is the kind of recipe that feels like it belongs on a paper plate in the kitchen while everyone is still standing around talking. Ripe bananas get mashed into a simple batter, fried into little golden fritters, then finished with cinnamon sugar if you want the donut-shop version. They are easy, forgiving, and best served warm with condensed milk, coffee, or hot chocolate.",
+    imageUrl: "/images/recipes/filipino-banana-bunuelos.png",
+    price: 0.25,
+    cuisine: "filipino",
+    mealType: "dessert",
+    dietaryTags: JSON.stringify(["vegetarian"]),
+    prepTime: 10,
+    cookTime: 15,
+    servings: 12,
+    difficulty: "easy",
+    ingredients: JSON.stringify([
+      "2 ripe saba bananas, ripe plantains, or regular bananas",
+      "1 cup all-purpose flour",
+      "1 1/2 tsp baking powder",
+      "1 tbsp sugar",
+      "1/4 tsp salt",
+      "1 large egg",
+      "1/4 cup milk or coconut milk",
+      "1/2 tsp vanilla extract, optional",
+      "Oil for frying",
+      "Optional coating: 1/4 cup sugar",
+      "Optional coating: 1/2 tsp cinnamon powder",
+    ]),
+    steps: JSON.stringify([
+      "Mash the bananas in a mixing bowl until mostly smooth with a few small chunks remaining.",
+      "Mix in the egg, milk, and vanilla extract if using.",
+      "In a separate bowl, whisk together the flour, baking powder, sugar, and salt.",
+      "Stir the dry ingredients into the banana mixture until just combined. Do not overmix.",
+      "Heat about 1 to 2 inches of oil in a pot or deep skillet over medium heat.",
+      "Drop small scoops of batter into the hot oil, leaving space between each one.",
+      "Fry until golden brown on the first side, then flip and cook the other side until evenly golden.",
+      "Transfer to paper towels or a rack to drain.",
+      "If using the coating, mix the sugar and cinnamon together, then toss the warm buñuelos in it.",
+      "Serve warm with condensed milk, coffee, or hot chocolate.",
+    ]),
+    notes: "Saba bananas are ideal, but ripe plantains or regular bananas work too. If using regular bananas, choose ones that are ripe and spotty but not watery. Keep the oil around medium heat so the outside browns while the inside cooks through. If the buñuelos brown too fast, lower the heat slightly.",
+  },
 ];
 
 export async function seedDatabase() {
-  // Check if already seeded
-  const existing = await db.select().from(creators);
-  if (existing.length > 0) {
-    // Ensure isFree flags are correct on existing data
-    for (const recipe of SAMPLE_RECIPES) {
-      const id = stableId(recipe.title);
-      await db
-        .update(recipes)
-        .set({ isFree: 0 })
-        .where(eq(recipes.id, id))
-        .catch(() => {});
-    }
-    // Clean up stale creators/recipes from old seeds
-    const validIds = SAMPLE_RECIPES.map((r) => stableId(r.title));
-    const validAddresses = SAMPLE_CREATORS.map((c) => c.address);
-    await db.delete(recipes).where(notInArray(recipes.id, validIds)).catch(() => {});
-    await db.delete(creators).where(notInArray(creators.address, validAddresses)).catch(() => {});
-    return { message: "Database already seeded (migrated)", count: existing.length };
-  }
-
-  // Insert creators
   for (const creator of SAMPLE_CREATORS) {
-    await db.insert(creators).values(creator);
+    await db
+      .insert(creators)
+      .values(creator)
+      .onConflictDoUpdate({
+        target: creators.address,
+        set: {
+          name: creator.name,
+          bio: creator.bio,
+          avatarUrl: creator.avatarUrl,
+          slug: creator.slug,
+          bannerUrl: creator.bannerUrl,
+          socialLinks: creator.socialLinks,
+        },
+      });
   }
 
-  // Insert recipes
   for (const recipe of SAMPLE_RECIPES) {
-    await db.insert(recipes).values({
+    const sampleRecipe = {
       id: stableId(recipe.title),
       ...recipe,
       priceUsdcAtomic: usdToUsdcAtomic(recipe.price),
       isFree: 0,
+    };
+
+    await db.insert(recipes).values({
+      ...sampleRecipe,
+    }).onConflictDoUpdate({
+      target: recipes.id,
+      set: {
+        creatorAddress: sampleRecipe.creatorAddress,
+        title: sampleRecipe.title,
+        description: sampleRecipe.description,
+        imageUrl: sampleRecipe.imageUrl,
+        price: sampleRecipe.price,
+        priceUsdcAtomic: sampleRecipe.priceUsdcAtomic,
+        cuisine: sampleRecipe.cuisine,
+        mealType: sampleRecipe.mealType,
+        dietaryTags: sampleRecipe.dietaryTags,
+        prepTime: sampleRecipe.prepTime,
+        cookTime: sampleRecipe.cookTime,
+        servings: sampleRecipe.servings,
+        difficulty: sampleRecipe.difficulty,
+        slug: sampleRecipe.slug,
+        introContent: sampleRecipe.introContent,
+        isFree: sampleRecipe.isFree,
+        ingredients: sampleRecipe.ingredients,
+        steps: sampleRecipe.steps,
+        notes: sampleRecipe.notes,
+      },
     });
   }
 
   return {
-    message: "Database seeded",
+    message: "Sample database seeded",
     creators: SAMPLE_CREATORS.length,
     recipes: SAMPLE_RECIPES.length,
   };
