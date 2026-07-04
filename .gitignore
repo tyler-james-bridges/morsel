@@ -54,3 +54,7 @@ SOUL.md
 TOOLS.md
 USER.md
 SPEC-*.md
+
+# playwright
+test-results/
+playwright-report/
