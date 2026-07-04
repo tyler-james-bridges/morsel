@@ -10,6 +10,8 @@ Create a local `.env.local` from `.env.example`.
 
 `MORSEL_ACCESS_TOKEN_SECRET` signs recipe access cookies after x402 settlement. If unset, the app falls back to `DATABASE_URL`.
 
+`MORSEL_SEED_ADMIN_SECRET` enables the manual sample-data seed endpoint. Leave it unset in deployed environments unless you intentionally need admin-only reseeding.
+
 ## Getting Started
 
 First, run the development server:
@@ -25,6 +27,15 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+Sample data is not created automatically during normal app startup. To seed the built-in sample creator and recipes in development, set `MORSEL_SEED_ADMIN_SECRET` and call:
+
+```bash
+curl -X POST http://localhost:3000/api/seed \
+  -H "x-morsel-seed-secret: $MORSEL_SEED_ADMIN_SECRET"
+```
+
+The seed operation only upserts the known sample rows; it does not delete existing creators or recipes.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
