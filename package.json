@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint --max-warnings=0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "demo": "DEMO=1 playwright test --headed"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -29,6 +31,7 @@
     "wagmi": "^2.19.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
