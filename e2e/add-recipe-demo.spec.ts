@@ -45,16 +45,24 @@ test.describe("Filipino Banana Buñuelos", () => {
     await test.step("recipe card shows up in the feed", async () => {
       // domcontentloaded: don't hang on slow third-party wallet resources
       await page.goto("/", { waitUntil: "domcontentloaded" });
-      const title = page.getByRole("heading", { name: RECIPE_TITLE });
-      await expect(title).toBeVisible();
-      const card = page.locator("article").filter({ has: title });
+      // Scope to tmoney_145's card: other creators can publish a recipe
+      // with the same title.
+      const card = page
+        .locator("article")
+        .filter({ has: page.getByRole("heading", { name: RECIPE_TITLE }) })
+        .filter({ hasText: "tmoney_145" });
+      await expect(card.getByRole("heading", { name: RECIPE_TITLE })).toBeVisible();
       await expect(card.getByText(RECIPE_PRICE).first()).toBeVisible();
       await card.scrollIntoViewIfNeeded();
       await page.waitForTimeout(DEMO_PAUSE_MS);
     });
 
     await test.step("card links to the detail page", async () => {
-      await page.getByRole("heading", { name: RECIPE_TITLE }).click();
+      await page
+        .locator("article")
+        .filter({ hasText: "tmoney_145" })
+        .getByRole("heading", { name: RECIPE_TITLE })
+        .click();
       await page.waitForURL(`**${RECIPE_PATH}`);
     });
 

@@ -9,6 +9,9 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 180_000,
   retries: 0,
+  // The specs share one app database (seed/delete/publish), so they must
+  // not run concurrently.
+  workers: 1,
   reporter: [["list"]],
   use: {
     baseURL,
