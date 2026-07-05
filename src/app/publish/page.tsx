@@ -10,7 +10,7 @@ import { createCreatorPublishHeaders } from "@/lib/wallet-auth";
 
 const CUISINES = [
   "italian", "mexican", "japanese", "indian", "thai",
-  "french", "american", "mediterranean", "chinese", "korean",
+  "french", "american", "mediterranean", "chinese", "korean", "filipino",
 ];
 
 const MEAL_TYPES = [
@@ -414,6 +414,32 @@ export default function PublishPage() {
               />
             </button>
           </div>
+
+          {/* Price — mobile only (sticky preview handles desktop) */}
+          {!isFree && (
+            <div className="lg:hidden">
+              <label className={labelClass}>Unlock price</label>
+              <div className="flex flex-wrap gap-2">
+                {PRICES.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPrice(p)}
+                    className={`font-mono text-[13.5px] px-3.5 py-2 rounded-[3px] border-[1.5px] transition-colors ${
+                      price === p
+                        ? "bg-accent text-accent-ink border-ink"
+                        : "bg-card border-ink/30 text-ink-2 hover:border-ink"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <p className="font-mono text-[11px] text-ink-4 mt-3.5 leading-relaxed">
+                You keep {price} - ~5% &middot; settled in USDC on Base
+              </p>
+            </div>
+          )}
 
           {/* Submit — mobile only (sticky preview handles desktop) */}
           <div className="lg:hidden">
