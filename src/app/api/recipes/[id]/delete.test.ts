@@ -31,7 +31,22 @@ vi.mock("@/lib/db", () => ({
   getDb: vi.fn(async () => dbMock),
 }));
 
+const authState = vi.hoisted(() => ({
+  hasWalletHeaders: false,
+  authenticatedCreator: null as string | null,
+}));
+
+vi.mock("@/lib/recipe-publish", () => ({
+  hasCreatorWalletAuthHeaders: vi.fn(() => authState.hasWalletHeaders),
+  getAuthenticatedCreatorAddress: vi.fn(
+    async () => authState.authenticatedCreator,
+  ),
+}));
+
 import * as route from "./route";
+
+const CREATOR_ADDRESS = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+const OTHER_ADDRESS = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 
 const originalSeedSecret = process.env.MORSEL_SEED_ADMIN_SECRET;
 
@@ -48,7 +63,15 @@ function makeParams(id = "recipe-1") {
 
 describe("DELETE /api/recipes/[id]", () => {
   beforeEach(() => {
-    dbState.recipeRows = [{ id: "recipe-1", slug: "recipe-one" }];
+    dbState.recipeRows = [
+      {
+        id: "recipe-1",
+        slug: "recipe-one",
+        creatorAddress: CREATOR_ADDRESS,
+      },
+    ];
+    authState.hasWalletHeaders = false;
+    authState.authenticatedCreator = null;
     dbState.unlockRows = [];
     dbState.deletedTables = [];
     dbState.recipesTable = recipes;
@@ -120,5 +143,36 @@ describe("DELETE /api/recipes/[id]", () => {
       slug: "recipe-one",
     });
     expect(dbState.deletedTables).toEqual([recipes]);
+  });
+
+  it("lets the creator delete their own recipe with a wallet signature", async () => {
+    delete process.env.MORSEL_SEED_ADMIN_SECRET;
+    authState.hasWalletHeaders = true;
+    authState.authenticatedCreator = CREATOR_ADDRESS;
+
+    const response = await route.DELETE(makeRequest(), makeParams());
+
+    expect(response.status).toBe(200);
+    expect(dbState.deletedTables).toEqual([recipes]);
+  });
+
+  it("rejects wallet requests with an invalid signature", async () => {
+    authState.hasWalletHeaders = true;
+    authState.authenticatedCreator = null;
+
+    const response = await route.DELETE(makeRequest(), makeParams());
+
+    expect(response.status).toBe(401);
+    expect(dbState.deletedTables).toEqual([]);
+  });
+
+  it("refuses deletion by a wallet that is not the creator", async () => {
+    authState.hasWalletHeaders = true;
+    authState.authenticatedCreator = OTHER_ADDRESS;
+
+    const response = await route.DELETE(makeRequest(), makeParams());
+
+    expect(response.status).toBe(403);
+    expect(dbState.deletedTables).toEqual([]);
   });
 });
