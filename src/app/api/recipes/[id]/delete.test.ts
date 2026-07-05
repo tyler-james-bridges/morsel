@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { recipes, unlocks } from "@/lib/schema";
+import { recipes } from "@/lib/schema";
 
 const dbState = vi.hoisted(() => ({
   recipeRows: [] as Array<{ id: string; slug: string }>,
-  paymentEventRows: [] as Array<{ id: string }>,
+  unlockRows: [] as Array<{ id: string }>,
   deletedTables: [] as unknown[],
   recipesTable: undefined as unknown,
 }));
@@ -15,7 +15,7 @@ const dbMock = vi.hoisted(() => ({
       where: vi.fn(() => ({
         limit: vi.fn(async () => {
           if (table === dbState.recipesTable) return dbState.recipeRows;
-          return dbState.paymentEventRows;
+          return dbState.unlockRows;
         }),
       })),
     })),
@@ -49,7 +49,7 @@ function makeParams(id = "recipe-1") {
 describe("DELETE /api/recipes/[id]", () => {
   beforeEach(() => {
     dbState.recipeRows = [{ id: "recipe-1", slug: "recipe-one" }];
-    dbState.paymentEventRows = [];
+    dbState.unlockRows = [];
     dbState.deletedTables = [];
     dbState.recipesTable = recipes;
     process.env.MORSEL_SEED_ADMIN_SECRET = "dev-secret";
@@ -98,19 +98,19 @@ describe("DELETE /api/recipes/[id]", () => {
     expect(dbState.deletedTables).toEqual([]);
   });
 
-  it("refuses to delete a recipe with settled payments", async () => {
-    dbState.paymentEventRows = [{ id: "payment-1" }];
+  it("refuses to delete a recipe that has been unlocked", async () => {
+    dbState.unlockRows = [{ id: "unlock-1" }];
 
     const response = await route.DELETE(makeRequest("dev-secret"), makeParams());
 
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({
-      error: "Recipe has settled payments and cannot be deleted",
+      error: "Recipe has been unlocked by buyers and cannot be deleted",
     });
     expect(dbState.deletedTables).toEqual([]);
   });
 
-  it("deletes unlocks then the recipe when the admin secret matches", async () => {
+  it("deletes the recipe when the admin secret matches", async () => {
     const response = await route.DELETE(makeRequest("dev-secret"), makeParams());
 
     expect(response.status).toBe(200);
@@ -119,6 +119,6 @@ describe("DELETE /api/recipes/[id]", () => {
       id: "recipe-1",
       slug: "recipe-one",
     });
-    expect(dbState.deletedTables).toEqual([unlocks, recipes]);
+    expect(dbState.deletedTables).toEqual([recipes]);
   });
 });

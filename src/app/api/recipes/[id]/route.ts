@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { paymentEvents, recipes, unlocks } from "@/lib/schema";
+import { recipes, unlocks } from "@/lib/schema";
 import { getRecipeById } from "@/lib/tool-queries";
 
 const adminSecretHeader = "x-morsel-seed-secret";
@@ -51,21 +51,20 @@ export async function DELETE(
     return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
   }
 
-  // Payment events are an audit trail of settled x402 payments; never delete them
-  const [paymentEvent] = await db
-    .select({ id: paymentEvents.id })
-    .from(paymentEvents)
-    .where(eq(paymentEvents.recipeId, id))
+  // Unlocks record paid access; never destroy that audit trail
+  const [unlock] = await db
+    .select({ id: unlocks.id })
+    .from(unlocks)
+    .where(eq(unlocks.recipeId, id))
     .limit(1);
 
-  if (paymentEvent) {
+  if (unlock) {
     return NextResponse.json(
-      { error: "Recipe has settled payments and cannot be deleted" },
+      { error: "Recipe has been unlocked by buyers and cannot be deleted" },
       { status: 409 },
     );
   }
 
-  await db.delete(unlocks).where(eq(unlocks.recipeId, id));
   await db.delete(recipes).where(eq(recipes.id, id));
 
   return NextResponse.json({

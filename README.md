@@ -37,7 +37,7 @@ curl -X POST http://localhost:3000/api/seed \
 
 The seed operation only upserts the known sample rows; it does not delete existing creators or recipes.
 
-To remove a recipe (for example to reset a demo), use the admin delete endpoint with the same secret. It also deletes the recipe's unlocks, but refuses with `409` if the recipe has settled payments, since payment events are kept as an audit trail:
+To remove a recipe (for example to reset a demo), use the admin delete endpoint with the same secret. It refuses with `409` if the recipe has been unlocked by buyers, since unlocks are kept as a record of paid access:
 
 ```bash
 curl -X DELETE http://localhost:3000/api/recipes/<recipe-id> \
