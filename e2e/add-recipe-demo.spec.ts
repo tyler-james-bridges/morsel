@@ -18,6 +18,16 @@ test.describe("Filipino Banana Buñuelos", () => {
       "Set MORSEL_SEED_ADMIN_SECRET to run the seed step (see README)",
     );
 
+    await test.step("reset: delete the recipe if it already exists", async () => {
+      const existing = await request.get(`/api/recipes/by-slug${RECIPE_PATH}`);
+      if (!existing.ok()) return;
+      const { id } = await existing.json();
+      const res = await request.delete(`/api/recipes/${id}`, {
+        headers: { "x-morsel-seed-secret": seedSecret! },
+      });
+      expect(res.status(), "reset delete should succeed").toBe(200);
+    });
+
     await test.step("add the recipe through the seed endpoint", async () => {
       // Generous timeout: on a cold dev server this request can take a while.
       const res = await request.post("/api/seed", {

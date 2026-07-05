@@ -37,6 +37,13 @@ curl -X POST http://localhost:3000/api/seed \
 
 The seed operation only upserts the known sample rows; it does not delete existing creators or recipes.
 
+To remove a recipe (for example to reset a demo), use the admin delete endpoint with the same secret. It also deletes the recipe's unlocks, but refuses with `409` if the recipe has settled payments, since payment events are kept as an audit trail:
+
+```bash
+curl -X DELETE http://localhost:3000/api/recipes/<recipe-id> \
+  -H "x-morsel-seed-secret: $MORSEL_SEED_ADMIN_SECRET"
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
