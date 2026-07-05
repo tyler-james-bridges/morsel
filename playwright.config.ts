@@ -14,8 +14,12 @@ export default defineConfig({
     baseURL,
     viewport: { width: 1280, height: 800 },
     trace: "retain-on-failure",
-    video: demoMode ? "on" : "retain-on-failure",
-    launchOptions: demoMode ? { slowMo: 500 } : {},
+    video: demoMode
+      ? { mode: "on", size: { width: 1280, height: 800 } }
+      : "retain-on-failure",
+    launchOptions: demoMode
+      ? { slowMo: Number(process.env.DEMO_SLOWMO || 500) }
+      : {},
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

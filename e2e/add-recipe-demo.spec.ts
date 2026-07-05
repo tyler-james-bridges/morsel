@@ -7,6 +7,9 @@ const RECIPE_PRICE = "$0.25";
 // A distinctive line from the gated steps. It must never render while locked.
 const GATED_STEP = "Mash the bananas in a mixing bowl";
 
+// In demo mode, hold on each screen so viewers (and recordings) can follow.
+const DEMO_PAUSE_MS = process.env.DEMO === "1" ? 1500 : 0;
+
 test.describe("Filipino Banana Buñuelos", () => {
   test("is added via seed and verified through the app", async ({
     page,
@@ -47,6 +50,7 @@ test.describe("Filipino Banana Buñuelos", () => {
       const card = page.locator("article").filter({ has: title });
       await expect(card.getByText(RECIPE_PRICE).first()).toBeVisible();
       await card.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(DEMO_PAUSE_MS);
     });
 
     await test.step("card links to the detail page", async () => {
@@ -66,10 +70,14 @@ test.describe("Filipino Banana Buñuelos", () => {
       await expect(
         page.getByText("paper plate in the kitchen while everyone"),
       ).toBeVisible();
+      await page.waitForTimeout(DEMO_PAUSE_MS);
     });
 
     await test.step("full recipe stays behind the paywall", async () => {
-      await expect(page.getByText("Unlock the full recipe")).toBeVisible();
+      const paywall = page.getByText("Unlock the full recipe");
+      await paywall.scrollIntoViewIfNeeded();
+      await expect(paywall).toBeVisible();
+      await page.waitForTimeout(DEMO_PAUSE_MS);
       await expect(page.getByText(GATED_STEP)).toHaveCount(0);
 
       const recipeRes = await request.get(`/api/recipes/by-slug${RECIPE_PATH}`);
