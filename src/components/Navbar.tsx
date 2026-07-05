@@ -78,7 +78,7 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <div className="pt-2">
+            <div className="pt-2" onClickCapture={() => setMobileOpen(false)}>
               <ConnectButton accountStatus="address" chainStatus="none" showBalance={false} />
             </div>
           </div>
