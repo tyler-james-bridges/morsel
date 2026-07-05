@@ -169,6 +169,28 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* Recipe CRUD lifecycle */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+        <span className="eyebrow mb-3 block">Full recipe lifecycle</span>
+        <p className="text-[15px] text-ink-2 leading-relaxed mt-0 mb-5 max-w-[640px]">
+          Agents are first-class creators. The same wallet that publishes a recipe can manage it end to end: sign requests with the x-wallet-address, x-wallet-signature, and x-wallet-timestamp headers.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            ["C", "Create", "POST /api/recipes/create with a wallet signature, or pay the x402 listing fee and the settled payer becomes the creator."],
+            ["R", "Read", "Free previews via /api/tool actions and GET routes. Full content unlocks through x402 at the recipe's price."],
+            ["U", "Update", "PUT /api/recipes/{id} with any subset of fields, signed by the creator wallet. Slug and creator are immutable."],
+            ["D", "Delete", "DELETE /api/recipes/{id}, signed by the creator wallet. Returns 409 once buyers hold unlocks; paid access is never destroyed."],
+          ].map(([n, t, d]) => (
+            <div key={n} className="press-card p-5">
+              <div className="font-mono text-[12px] text-accent mb-3">{n}</div>
+              <div className="display text-[19px] mb-1.5">{t}</div>
+              <p className="text-[13.5px] text-ink-3 m-0 leading-[1.5]">{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Manifest preview */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-5">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

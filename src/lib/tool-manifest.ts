@@ -5,7 +5,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://morsel.0x402.sh"
 export const morselManifest = defineManifest({
   type: "https://ercs.ethereum.org/ERCS/erc-8257#tool-manifest-v1",
   name: "morsel",
-  description: "Recipe marketplace with micropayments. Search recipes, browse creators, unlock full recipe content via x402 USDC payments on Base, and publish recipes through POST /api/recipes/create.",
+  description: "Recipe marketplace with micropayments. Search recipes, browse creators, unlock full recipe content via x402 USDC payments on Base, and publish recipes through POST /api/recipes/create. Creator wallets manage their own listings with wallet-signed PUT /api/recipes/{id} to update and DELETE /api/recipes/{id} to remove.",
   endpoint: `${BASE_URL}/api/tool`,
   inputs: {
     type: "object",
