@@ -78,12 +78,49 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <div className="pt-2" onClickCapture={() => setMobileOpen(false)}>
-              <ConnectButton accountStatus="address" chainStatus="none" showBalance={false} />
+            <div className="pt-2">
+              <MobileConnectButton onInteract={() => setMobileOpen(false)} />
             </div>
           </div>
         )}
       </div>
     </nav>
+  );
+}
+
+function MobileConnectButton({ onInteract }: { onInteract: () => void }) {
+  return (
+    <ConnectButton.Custom>
+      {({
+        account,
+        chain,
+        mounted,
+        authenticationStatus,
+        openAccountModal,
+        openChainModal,
+        openConnectModal,
+      }) => {
+        if (!mounted || authenticationStatus === "loading") return null;
+
+        const connected = account && chain && (!authenticationStatus || authenticationStatus === "authenticated");
+        const label = connected ? (chain.unsupported ? "Wrong network" : account.displayName) : "Connect Wallet";
+
+        return (
+          <button
+            type="button"
+            className="btn-ink w-fit px-4 py-2 text-sm"
+            onClick={() => {
+              if (!connected) openConnectModal();
+              else if (chain.unsupported) openChainModal();
+              else openAccountModal();
+
+              onInteract();
+            }}
+          >
+            {label}
+          </button>
+        );
+      }}
+    </ConnectButton.Custom>
   );
 }
