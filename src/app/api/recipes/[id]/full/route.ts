@@ -7,6 +7,11 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { Network } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import {
+  BUILDER_CODE,
+  builderCodeResourceServerExtension,
+  declareBuilderCodeExtension,
+} from "@x402/extensions/builder-code";
 import { withX402, x402ResourceServer } from "@x402/next";
 import db, { getDb } from "@/lib/db";
 import {
@@ -28,6 +33,7 @@ import {
 import { and, eq, sql } from "drizzle-orm";
 import { getAddress, isAddress, verifyMessage, type Hex } from "viem";
 import { v4 as uuid } from "uuid";
+import { BASE_BUILDER_CODE } from "@/lib/builder-code";
 
 const BASE_NETWORK: Network = "eip155:8453";
 const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -71,6 +77,7 @@ function getX402Server() {
     resourceServer = new x402ResourceServer(
       new HTTPFacilitatorClient({ url: X402_FACILITATOR_URL }),
     ).register(BASE_NETWORK, new ExactEvmScheme());
+    resourceServer.registerExtension?.(builderCodeResourceServerExtension);
   }
   return resourceServer;
 }
@@ -138,7 +145,10 @@ function withRecipePayment(
       ],
       description,
       mimeType: "application/json",
-      extensions: FULL_RECIPE_DISCOVERY_EXTENSION,
+      extensions: {
+        ...FULL_RECIPE_DISCOVERY_EXTENSION,
+        [BUILDER_CODE]: declareBuilderCodeExtension(BASE_BUILDER_CODE),
+      },
     },
     getX402Server(),
   );

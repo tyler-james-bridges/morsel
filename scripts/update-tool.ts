@@ -2,6 +2,7 @@ import { computeManifestHash, validateManifest, ToolRegistryClient } from "@open
 import { createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { base } from "viem/chains"
+import { BASE_DATA_SUFFIX } from "../src/lib/builder-code"
 
 const METADATA_URI = "https://morsel.0x402.sh/.well-known/ai-tool/morsel.json"
 const TOOL_ID = 28n
@@ -28,7 +29,12 @@ async function main() {
   const account = privateKeyToAccount(pk as `0x${string}`)
   console.log(`[ok] Wallet: ${account.address}`)
 
-  const walletClient = createWalletClient({ account, chain: base, transport: http("https://mainnet.base.org") })
+  const walletClient = createWalletClient({
+    account,
+    chain: base,
+    transport: http("https://mainnet.base.org"),
+    dataSuffix: BASE_DATA_SUFFIX,
+  })
   const registry = new ToolRegistryClient({ chain: base, walletClient })
 
   console.log(`Updating tool #${TOOL_ID} metadata onchain...`)

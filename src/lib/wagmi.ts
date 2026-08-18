@@ -8,6 +8,7 @@ import {
 } from "@rainbow-me/rainbowkit/wallets";
 import { http } from "wagmi";
 import { base } from "wagmi/chains";
+import { BASE_DATA_SUFFIX } from "@/lib/builder-code";
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
@@ -31,6 +32,7 @@ export const config = getDefaultConfig({
   appName: "Morsel",
   projectId: walletConnectProjectId ?? "YOUR_PROJECT_ID",
   chains: [base],
+  dataSuffix: BASE_DATA_SUFFIX,
   ssr: true,
   wallets: [
     {
