@@ -7,6 +7,11 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { Network } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import {
+  BUILDER_CODE,
+  builderCodeResourceServerExtension,
+  declareBuilderCodeExtension,
+} from "@x402/extensions/builder-code";
 import { withX402, x402ResourceServer } from "@x402/next";
 import { getDb } from "@/lib/db";
 import { PAYOUT_ADDRESS, X402_FACILITATOR_URL } from "@/lib/payment";
@@ -19,6 +24,7 @@ import {
   type RecipePublishInput,
 } from "@/lib/recipe-publish";
 import { getAddress, isAddress } from "viem";
+import { BASE_BUILDER_CODE } from "@/lib/builder-code";
 
 const BASE_NETWORK: Network = "eip155:8453";
 const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -97,6 +103,7 @@ function getX402Server() {
     resourceServer = new x402ResourceServer(
       new HTTPFacilitatorClient({ url: X402_FACILITATOR_URL }),
     ).register(BASE_NETWORK, new ExactEvmScheme());
+    resourceServer.registerExtension?.(builderCodeResourceServerExtension);
   }
   return resourceServer;
 }
@@ -142,7 +149,10 @@ function withPublishPayment(handler: (req: NextRequest) => Promise<NextResponse>
       ],
       description: "Publish a Morsel recipe",
       mimeType: "application/json",
-      extensions: PUBLISH_DISCOVERY_EXTENSION,
+      extensions: {
+        ...PUBLISH_DISCOVERY_EXTENSION,
+        [BUILDER_CODE]: declareBuilderCodeExtension(BASE_BUILDER_CODE),
+      },
     },
     getX402Server(),
   );

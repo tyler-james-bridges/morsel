@@ -17,6 +17,7 @@ import { computeManifestHash, validateManifest, ToolRegistryClient } from "@open
 import { createWalletClient, http, type Chain } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { base, mainnet } from "viem/chains"
+import { BASE_DATA_SUFFIX } from "../src/lib/builder-code"
 
 // -- Manifest (must match src/lib/tool-manifest.ts exactly) --
 const manifest = {
@@ -123,6 +124,7 @@ async function main() {
     account,
     chain,
     transport: http(rpcUrl),
+    dataSuffix: chain.id === base.id ? BASE_DATA_SUFFIX : undefined,
   })
 
   const registry = new ToolRegistryClient({
