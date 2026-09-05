@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import RecipeContent from "@/components/RecipeContent";
+import IntroContent from "@/components/IntroContent";
 import { blueberryMuffinsDraft as recipe } from "@/content/recipes/blueberry-muffins";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default function BlueberryMuffinsPreview() {
     <article className="max-w-2xl mx-auto px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/15 pb-4 mb-7">
         <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
-          Local draft · Not published
+          Local revision · Preview
         </span>
         <a
           href="#recipe"
@@ -26,17 +27,22 @@ export default function BlueberryMuffinsPreview() {
         </a>
       </div>
 
-      <p className="text-[14px] text-ink-3 mb-5">
-        Recipe by {recipe.source.author} ·{" "}
-        <a
-          href={recipe.source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 hover:text-accent"
-        >
-          {recipe.source.name}
-        </a>
-      </p>
+      <a
+        href="https://morsel.0x402.sh/tmoney145"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 mb-[22px] group"
+      >
+        <Image
+          src="https://pbs.twimg.com/profile_images/2051778368866316288/8BprVzHq.jpg"
+          alt="tmoney_145"
+          width={42}
+          height={42}
+          unoptimized
+          className="rounded-[3px] object-cover"
+        />
+        <span className="text-[15px] font-semibold group-hover:text-accent">tmoney_145</span>
+      </a>
 
       <div className="flex flex-wrap gap-2 mb-4">
         {[recipe.cuisine, recipe.mealType, ...recipe.dietaryTags].map((tag) => (
@@ -56,7 +62,7 @@ export default function BlueberryMuffinsPreview() {
         {recipe.description}
       </p>
 
-      <figure className="mb-8">
+      <figure className="mb-3.5">
         <div className="relative aspect-[16/9] rounded-[4px] overflow-hidden bg-paper-2">
           <Image
             src={recipe.imageUrl}
@@ -67,10 +73,18 @@ export default function BlueberryMuffinsPreview() {
             className="object-cover"
           />
         </div>
-        <figcaption className="font-mono text-[10px] text-ink-4 mt-2 text-right">
-          AI-generated serving illustration
-        </figcaption>
       </figure>
+
+      <div className="flex justify-end mb-9">
+        <span className="agent-badge">
+          <span className="diamond" />
+          recipe_full · $0.25
+        </span>
+      </div>
+
+      <div className="mb-10">
+        <IntroContent content={recipe.introContent} />
+      </div>
 
       <div id="recipe" className="scroll-mt-24 border-t-[1.5px] border-ink/15 pt-8">
         <RecipeContent

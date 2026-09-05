@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { seedDatabase } from "@/lib/seed";
-import { seedBlueberryMuffins } from "@/lib/seed-blueberry-muffins";
+import { seedBlueberryMuffins, updateBlueberryMuffinsContent } from "@/lib/seed-blueberry-muffins";
 
 const seedSecretHeader = "x-morsel-seed-secret";
 
@@ -20,6 +20,18 @@ export async function POST(request: NextRequest) {
   const recipe = request.nextUrl.searchParams.get("recipe");
   if (recipe !== null && recipe !== "blueberry-muffins") {
     return NextResponse.json({ error: "Unknown recipe import" }, { status: 400 });
+  }
+
+  const action = request.nextUrl.searchParams.get("action") ?? "import";
+  if (action !== "import" && !(action === "update-content" && recipe === "blueberry-muffins")) {
+    return NextResponse.json({ error: "Unknown recipe action" }, { status: 400 });
+  }
+
+  if (action === "update-content") {
+    const result = await updateBlueberryMuffinsContent();
+    return result
+      ? NextResponse.json(result)
+      : NextResponse.json({ error: "Recipe not found" }, { status: 404 });
   }
 
   const result = recipe === "blueberry-muffins"

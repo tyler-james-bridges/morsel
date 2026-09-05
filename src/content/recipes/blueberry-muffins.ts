@@ -4,7 +4,8 @@ import type { Recipe } from "@/lib/types";
 export const blueberryMuffinsDraft = {
   title: "Blueberry Muffins",
   slug: "blueberry-muffins",
-  description: "Fresh blueberries. Buttery cinnamon crumbs. Breakfast, sorted.",
+  description: "Big, tender muffins packed with blueberries and finished with buttery cinnamon crumbs. The kind of breakfast that deserves a second cup of coffee.",
+  introContent: "The best part is the top: buttery cinnamon crumbs with a little crunch over a soft, blueberry-filled center. This is a straightforward batter, mixed by hand and portioned into eight generously filled cups. The muffins bake up big enough to make breakfast feel like a bakery run, especially while they are still warm and the coffee is ready.\n\nSource: [Colleen on Allrecipes](https://www.allrecipes.com/recipe/6865/to-die-for-blueberry-muffins/). AI-generated cover.",
   imageUrl: "/images/recipes/blueberry-muffins.png",
   cuisine: "american",
   mealType: "breakfast",
@@ -14,29 +15,30 @@ export const blueberryMuffinsDraft = {
   servings: 8,
   difficulty: "easy",
   ingredients: [
-    "1½ cups all-purpose flour",
-    "¾ cup white sugar",
+    "1 1/2 cups all-purpose flour",
+    "3/4 cup white sugar",
     "2 tsp baking powder",
-    "½ tsp salt",
-    "⅓ cup vegetable oil",
+    "1/2 tsp salt",
+    "1/3 cup vegetable oil",
     "1 large egg",
-    "⅓ cup milk, or more as needed",
+    "1/3 cup milk, or more as needed",
     "1 cup fresh blueberries",
-    "Topping: ½ cup white sugar",
-    "Topping: ⅓ cup all-purpose flour",
-    "Topping: ¼ cup butter, cubed",
-    "Topping: 1½ tsp ground cinnamon",
+    "Crumb topping: 1/2 cup white sugar",
+    "Crumb topping: 1/3 cup all-purpose flour",
+    "Crumb topping: 1/4 cup butter, cubed",
+    "Crumb topping: 1 1/2 tsp ground cinnamon",
   ],
   steps: [
-    "Heat oven: 400°F (200°C). Grease or line eight muffin cups.",
-    "Combine dry muffin ingredients.",
-    "In a liquid measuring cup, add oil and egg. Add milk until the combined volume reaches 1 cup, then stir.",
-    "Mix wet into dry gently; fold in blueberries.",
-    "Fork-mix topping until crumbly.",
-    "Fill cups completely; add topping.",
-    "Bake 20–25 minutes, until toothpick-clean.",
+    "Preheat oven to 400F (200C). Grease 8 muffin cups or line them with paper liners.",
+    "Whisk the muffin flour, white sugar, baking powder, and salt together in a large bowl.",
+    "Measure 1/3 cup oil into a liquid measuring cup. Add the egg, then enough milk to bring the combined volume to 1 cup. Stir together.",
+    "Pour the wet ingredients into the flour mixture and stir just until combined. Do not overmix.",
+    "Gently fold in the blueberries.",
+    "Make the crumb topping: use a fork to work its white sugar, flour, cubed butter, and cinnamon together until crumbly.",
+    "Divide the batter between the 8 muffin cups, filling to the top. Sprinkle the crumb topping evenly over the batter.",
+    "Bake for 20-25 minutes, until a toothpick inserted into the center of a muffin comes out clean.",
   ],
-  notes: "Makes 8 large muffins. Using a 12-cup pan? Put 1 tbsp water in each empty cup before baking.",
+  notes: "Makes 8 large muffins. If using a 12-cup pan, add 1 tbsp water to each of the 4 empty cups before baking.",
   source: {
     author: "Colleen",
     name: "Allrecipes",
@@ -47,6 +49,7 @@ export const blueberryMuffinsDraft = {
   | "title"
   | "slug"
   | "description"
+  | "introContent"
   | "imageUrl"
   | "cuisine"
   | "mealType"

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const seedMock = vi.hoisted(() => ({
   seedDatabase: vi.fn(),
   seedBlueberryMuffins: vi.fn(),
+  updateBlueberryMuffinsContent: vi.fn(),
 }));
 
 vi.mock("@/lib/seed", () => ({
@@ -12,6 +13,7 @@ vi.mock("@/lib/seed", () => ({
 
 vi.mock("@/lib/seed-blueberry-muffins", () => ({
   seedBlueberryMuffins: seedMock.seedBlueberryMuffins,
+  updateBlueberryMuffinsContent: seedMock.updateBlueberryMuffinsContent,
 }));
 
 import * as route from "./route";
@@ -36,6 +38,11 @@ describe("/api/seed", () => {
       id: "muffin-id",
       slug: "blueberry-muffins",
       created: true,
+    });
+    seedMock.updateBlueberryMuffinsContent.mockReset().mockResolvedValue({
+      id: "muffin-id",
+      slug: "blueberry-muffins",
+      updated: true,
     });
   });
 
@@ -88,6 +95,7 @@ describe("/api/seed", () => {
     });
     expect(seedMock.seedDatabase).toHaveBeenCalledTimes(1);
     expect(seedMock.seedBlueberryMuffins).not.toHaveBeenCalled();
+    expect(seedMock.updateBlueberryMuffinsContent).not.toHaveBeenCalled();
   });
 
   it("keeps targeted importing disabled without a configured secret", async () => {
@@ -136,6 +144,75 @@ describe("/api/seed", () => {
       created: true,
     });
     expect(seedMock.seedBlueberryMuffins).toHaveBeenCalledTimes(1);
+    expect(seedMock.seedDatabase).not.toHaveBeenCalled();
+    expect(seedMock.updateBlueberryMuffinsContent).not.toHaveBeenCalled();
+  });
+
+  it("keeps content updates disabled without a configured admin secret", async () => {
+    delete process.env.MORSEL_SEED_ADMIN_SECRET;
+
+    const response = await route.POST(makeRequest("anything", "?recipe=blueberry-muffins&action=update-content"));
+
+    expect(response.status).toBe(404);
+    expect(seedMock.updateBlueberryMuffinsContent).not.toHaveBeenCalled();
+    expect(seedMock.seedBlueberryMuffins).not.toHaveBeenCalled();
+    expect(seedMock.seedDatabase).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, "wrong-secret"])("rejects content updates with absent or invalid credentials (%s)", async (secret) => {
+    process.env.MORSEL_SEED_ADMIN_SECRET = "dev-secret";
+
+    const response = await route.POST(makeRequest(secret, "?recipe=blueberry-muffins&action=update-content"));
+
+    expect(response.status).toBe(403);
+    expect(seedMock.updateBlueberryMuffinsContent).not.toHaveBeenCalled();
+    expect(seedMock.seedBlueberryMuffins).not.toHaveBeenCalled();
+    expect(seedMock.seedDatabase).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "?recipe=blueberry-muffins&action=unknown",
+    "?recipe=blueberry-muffins&action=",
+    "?action=unknown",
+    "?action=update-content",
+    "?recipe=another-recipe&action=update-content",
+  ])("rejects unsupported actions or update targets without seeding (%s)", async (query) => {
+    process.env.MORSEL_SEED_ADMIN_SECRET = "dev-secret";
+
+    const response = await route.POST(makeRequest("dev-secret", query));
+
+    expect(response.status).toBe(400);
+    expect(seedMock.updateBlueberryMuffinsContent).not.toHaveBeenCalled();
+    expect(seedMock.seedBlueberryMuffins).not.toHaveBeenCalled();
+    expect(seedMock.seedDatabase).not.toHaveBeenCalled();
+  });
+
+  it("updates only the targeted recipe when requested after authentication", async () => {
+    process.env.MORSEL_SEED_ADMIN_SECRET = "dev-secret";
+
+    const response = await route.POST(makeRequest("dev-secret", "?recipe=blueberry-muffins&action=update-content"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      id: "muffin-id",
+      slug: "blueberry-muffins",
+      updated: true,
+    });
+    expect(seedMock.updateBlueberryMuffinsContent).toHaveBeenCalledTimes(1);
+    expect(seedMock.seedBlueberryMuffins).not.toHaveBeenCalled();
+    expect(seedMock.seedDatabase).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the targeted content update finds no recipe", async () => {
+    process.env.MORSEL_SEED_ADMIN_SECRET = "dev-secret";
+    seedMock.updateBlueberryMuffinsContent.mockResolvedValueOnce(null);
+
+    const response = await route.POST(makeRequest("dev-secret", "?recipe=blueberry-muffins&action=update-content"));
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ error: "Recipe not found" });
+    expect(seedMock.updateBlueberryMuffinsContent).toHaveBeenCalledTimes(1);
+    expect(seedMock.seedBlueberryMuffins).not.toHaveBeenCalled();
     expect(seedMock.seedDatabase).not.toHaveBeenCalled();
   });
 });

@@ -11,6 +11,7 @@ const dbMock = vi.hoisted(() => ({
   onConflictDoNothing: vi.fn(),
   returning: vi.fn(),
   update: vi.fn(),
+  set: vi.fn(),
   delete: vi.fn(),
   onConflictDoUpdate: vi.fn(),
 }));
@@ -25,10 +26,43 @@ vi.mock("./db", () => ({
 }));
 
 import { creators, recipes } from "./schema";
-import { seedBlueberryMuffins } from "./seed-blueberry-muffins";
+import { seedBlueberryMuffins, updateBlueberryMuffinsContent } from "./seed-blueberry-muffins";
 
 const creatorAddress = "0xa102a2cb8AAc6C7d2c477412Ebb7d41d0Ce53495";
 const recipeId = "7165e174-3864-4699-986a-411bb730ba1b";
+const originalIngredients = [
+  "1 1/2 cups all-purpose flour",
+  "3/4 cup white sugar",
+  "2 tsp baking powder",
+  "1/2 tsp salt",
+  "1/3 cup vegetable oil",
+  "1 large egg",
+  "1/3 cup milk, or more as needed",
+  "1 cup fresh blueberries",
+  "Crumb topping: 1/2 cup white sugar",
+  "Crumb topping: 1/3 cup all-purpose flour",
+  "Crumb topping: 1/4 cup butter, cubed",
+  "Crumb topping: 1 1/2 tsp ground cinnamon",
+];
+
+function expectOriginalRecipeContent(row: Record<string, string>) {
+  expect(JSON.parse(row.ingredients)).toEqual(originalIngredients);
+  const steps = JSON.parse(row.steps);
+  expect(steps).toHaveLength(8);
+  expect(steps).toEqual(expect.arrayContaining([
+    expect.stringContaining("400F (200C)"),
+    expect.stringContaining("Measure 1/3 cup oil"),
+    expect.stringContaining("combined volume to 1 cup"),
+    expect.stringContaining("Do not overmix"),
+    expect.stringContaining("Gently fold in the blueberries"),
+    expect.stringContaining("filling to the top"),
+    expect.stringContaining("20-25 minutes"),
+  ]));
+  expect(row.introContent).toContain("Source: [Colleen on Allrecipes](https://www.allrecipes.com/recipe/6865/to-die-for-blueberry-muffins/)");
+  expect(row.introContent).toContain("AI-generated cover.");
+  expect(row.introContent.split("\n\n")).toHaveLength(2);
+  expect(row.notes).toContain("1 tbsp water to each of the 4 empty cups");
+}
 
 describe("seedBlueberryMuffins", () => {
   beforeEach(() => {
@@ -107,28 +141,7 @@ describe("seedBlueberryMuffins", () => {
       cookTime: 20,
       servings: 8,
     });
-    expect(JSON.parse(row.ingredients)).toEqual([
-      "1½ cups all-purpose flour",
-      "¾ cup white sugar",
-      "2 tsp baking powder",
-      "½ tsp salt",
-      "⅓ cup vegetable oil",
-      "1 large egg",
-      "⅓ cup milk, or more as needed",
-      "1 cup fresh blueberries",
-      "Topping: ½ cup white sugar",
-      "Topping: ⅓ cup all-purpose flour",
-      "Topping: ¼ cup butter, cubed",
-      "Topping: 1½ tsp ground cinnamon",
-    ]);
-    expect(JSON.parse(row.steps)).toEqual(expect.arrayContaining([
-      expect.stringContaining("400°F (200°C)"),
-      expect.stringContaining("combined volume reaches 1 cup"),
-      expect.stringContaining("20–25 minutes"),
-    ]));
-    expect(row.introContent).toContain("Recipe by Colleen, originally published on Allrecipes.");
-    expect(row.introContent).toContain("https://www.allrecipes.com/recipe/6865/to-die-for-blueberry-muffins/");
-    expect(row.introContent).toContain("AI-generated serving illustration");
+    expectOriginalRecipeContent(row);
     expect(dbMock.onConflictDoNothing).toHaveBeenCalledWith({ target: recipes.id });
   });
 
@@ -146,5 +159,50 @@ describe("seedBlueberryMuffins", () => {
 
     expect(dbMock.insert).toHaveBeenCalledTimes(1);
     expect(dbMock.onConflictDoNothing).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("updateBlueberryMuffinsContent", () => {
+  beforeEach(() => {
+    Object.values(dbMock).forEach((mock) => mock.mockReset());
+    dbMock.update.mockReturnValue({ set: dbMock.set });
+    dbMock.set.mockReturnValue({ where: dbMock.where });
+    dbMock.where.mockReturnValue({ returning: dbMock.returning });
+    dbMock.returning.mockResolvedValue([{ id: recipeId, slug: "blueberry-muffins" }]);
+  });
+
+  afterEach(() => {
+    expect(dbMock.select).not.toHaveBeenCalled();
+    expect(dbMock.insert).not.toHaveBeenCalled();
+    expect(dbMock.delete).not.toHaveBeenCalled();
+    expect(dbMock.onConflictDoUpdate).not.toHaveBeenCalled();
+  });
+
+  it("updates only editorial content on the exact existing creator recipe", async () => {
+    await expect(updateBlueberryMuffinsContent()).resolves.toEqual({
+      id: recipeId,
+      slug: "blueberry-muffins",
+      updated: true,
+    });
+
+    expect(dbMock.update).toHaveBeenCalledExactlyOnceWith(recipes);
+    expect(dbMock.set).toHaveBeenCalledTimes(1);
+    const row = dbMock.set.mock.calls[0][0];
+    expect(Object.keys(row).sort()).toEqual([
+      "description", "ingredients", "introContent", "notes", "steps",
+    ]);
+    expect(row.description).toContain("Big, tender muffins packed with blueberries");
+    expectOriginalRecipeContent(row);
+    const query = new PgDialect().sqlToQuery(dbMock.where.mock.calls[0][0]);
+    expect(query.params).toEqual([recipeId, creatorAddress, "blueberry-muffins"]);
+    expect(query.sql).toBe('(\"recipes\".\"id\" = $1 and \"recipes\".\"creator_address\" = $2 and \"recipes\".\"slug\" = $3)');
+  });
+
+  it("returns null when the exact recipe does not exist without inserting a replacement", async () => {
+    dbMock.returning.mockResolvedValueOnce([]);
+
+    await expect(updateBlueberryMuffinsContent()).resolves.toBeNull();
+
+    expect(dbMock.update).toHaveBeenCalledExactlyOnceWith(recipes);
   });
 });

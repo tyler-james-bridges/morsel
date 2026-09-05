@@ -6,6 +6,15 @@ interface IntroContentProps {
   content: string;
 }
 
+function isWebUrl(url: string) {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export default function IntroContent({ content }: IntroContentProps) {
   if (!content) return null;
 
@@ -16,12 +25,15 @@ export default function IntroContent({ content }: IntroContentProps) {
       {paragraphs.map((paragraph, i) => (
         <p
           key={i}
-          className="text-ink text-[18px] leading-[1.72]"
+          className={paragraph.startsWith("Source: ")
+            ? "text-ink-3 text-[12.5px] leading-[1.5]"
+            : "text-ink text-[18px] leading-[1.72]"}
         >
-          {paragraph.split(/(https?:\/\/[^\s<>"']+)/g).map((part, j) => {
-            if (!/^https?:\/\//.test(part)) return part;
+          {paragraph.split(/(\[[^\]\n]+\]\([^\s)]+\)|https?:\/\/[^\s<>"']+)/gi).map((part, j) => {
+            const labeledLink = part.match(/^\[([^\]\n]+)\]\(([^\s)]+)\)$/);
+            const url = labeledLink ? labeledLink[2] : part.replace(/[.,!?;:)\]]+$/, "");
+            if (!isWebUrl(url)) return part;
 
-            const url = part.replace(/[.,!?;:)\]]+$/, "");
             return (
               <Fragment key={j}>
                 <a
@@ -30,9 +42,9 @@ export default function IntroContent({ content }: IntroContentProps) {
                   rel="noopener noreferrer"
                   className="break-words underline underline-offset-4 hover:text-accent"
                 >
-                  {url}
+                  {labeledLink ? labeledLink[1] : url}
                 </a>
-                {part.slice(url.length)}
+                {!labeledLink && part.slice(url.length)}
               </Fragment>
             );
           })}
