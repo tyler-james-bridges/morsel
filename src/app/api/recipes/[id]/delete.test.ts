@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { recipes } from "@/lib/schema";
 
 const dbState = vi.hoisted(() => ({
-  recipeRows: [] as Array<{ id: string; slug: string }>,
+  recipeRows: [] as Array<{ id: string; slug: string; creatorAddress: string }>,
   unlockRows: [] as Array<{ id: string }>,
   deletedTables: [] as unknown[],
   recipesTable: undefined as unknown,

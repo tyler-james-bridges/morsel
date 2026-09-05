@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { seedDatabase } from "@/lib/seed";
+import { seedBlueberryMuffins } from "@/lib/seed-blueberry-muffins";
 
 const seedSecretHeader = "x-morsel-seed-secret";
 
@@ -16,7 +17,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const result = await seedDatabase();
+  const recipe = request.nextUrl.searchParams.get("recipe");
+  if (recipe !== null && recipe !== "blueberry-muffins") {
+    return NextResponse.json({ error: "Unknown recipe import" }, { status: 400 });
+  }
+
+  const result = recipe === "blueberry-muffins"
+    ? await seedBlueberryMuffins()
+    : await seedDatabase();
   return NextResponse.json(result);
 }
 
